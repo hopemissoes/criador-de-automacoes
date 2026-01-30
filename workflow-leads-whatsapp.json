@@ -1,0 +1,164 @@
+{
+  "name": "Leads WhatsApp + Planilha",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leads-webhook",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "leads-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3D68970096C0208616098A9CC3C58B07/token/E999467EA7E7797052653D3E/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Client-Token",
+              "value": "E999467EA7E7797052653D3E"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"55{{ $json.atendente }}\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n📋 *ID:* {{ $json.id }}\\n👤 *Nome:* {{ $json.nome }}\\n📞 *Telefone:* {{ $json.telefone }}\\n🏙️ *Cidade:* {{ $json.cidade }}\\n📦 *Plano:* {{ $json.plano }}\\n📅 *Data:* {{ $json.data }}\\n🌐 *Página:* {{ $json.pagina }}\"\n}",
+        "options": {}
+      },
+      "id": "zapi-vendedor",
+      "name": "Enviar para Vendedor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1YSlVkQr57W3YZKgLmUOjz5qt4xO7r4lxGqDoKVmJLMU",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=66706258",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "nome": "={{ $json.nome }}",
+            "telefone": "={{ $json.telefone }}",
+            "cidade": "={{ $json.cidade }}",
+            "plano": "={{ $json.plano }}",
+            "data": "={{ $json.data }}",
+            "pagina": "={{ $json.pagina }}",
+            "atendente": "={{ $json.atendente }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "id", "displayName": "id", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "nome", "displayName": "nome", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "telefone", "displayName": "telefone", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "cidade", "displayName": "cidade", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "plano", "displayName": "plano", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "data", "displayName": "data", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "pagina", "displayName": "pagina", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "atendente", "displayName": "atendente", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "google-sheets",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3D68970096C0208616098A9CC3C58B07/token/E999467EA7E7797052653D3E/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Client-Token",
+              "value": "E999467EA7E7797052653D3E"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"phone\": \"5583999471031\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n📋 *ID:* {{ $('Webhook').item.json.id }}\\n👤 *Nome:* {{ $('Webhook').item.json.nome }}\\n📞 *Telefone:* {{ $('Webhook').item.json.telefone }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.plano }}\\n📅 *Data:* {{ $('Webhook').item.json.data }}\\n🌐 *Página:* {{ $('Webhook').item.json.pagina }}\\n👨‍💼 *Atendente:* {{ $('Webhook').item.json.atendente }}\"\n}",
+        "options": {}
+      },
+      "id": "zapi-dono",
+      "name": "Enviar para Mim",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Enviar para Vendedor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar para Vendedor": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Enviar para Mim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "local"
+  },
+  "tags": []
+}
