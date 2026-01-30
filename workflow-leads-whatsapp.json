@@ -33,7 +33,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"55{{ $json.atendente }}\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n📋 *ID:* {{ $json.id }}\\n👤 *Nome:* {{ $json.nome }}\\n📞 *Telefone:* {{ $json.telefone }}\\n🏙️ *Cidade:* {{ $json.cidade }}\\n📦 *Plano:* {{ $json.plano }}\\n📅 *Data:* {{ $json.data }}\\n🌐 *Página:* {{ $json.pagina }}\"\n}",
+        "jsonBody": "={\n  \"phone\": \"55{{ $json.telefone_vendedor.replace(/\\D/g, '') }}\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n📋 *ID:* {{ $json.lead_id }}\\n👤 *Nome:* {{ $json.nome }}\\n📞 *Telefone:* {{ $json.telefone }}\\n🏙️ *Cidade:* {{ $json.cidade }}\\n📦 *Plano:* {{ $json.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $json.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $json.idades }}\\n📅 *Data:* {{ $json.data_envio }} às {{ $json.hora_submissao }}\\n🌐 *Página:* {{ $json.pagina_origem }}\\n🏢 *Grupo:* {{ $json.grupo }}\"\n}",
         "options": {}
       },
       "id": "zapi-vendedor",
@@ -58,25 +58,35 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "id": "={{ $json.id }}",
+            "lead_id": "={{ $json.lead_id }}",
             "nome": "={{ $json.nome }}",
             "telefone": "={{ $json.telefone }}",
             "cidade": "={{ $json.cidade }}",
-            "plano": "={{ $json.plano }}",
-            "data": "={{ $json.data }}",
-            "pagina": "={{ $json.pagina }}",
-            "atendente": "={{ $json.atendente }}"
+            "tipo_de_plano": "={{ $json.tipo_de_plano }}",
+            "quantidade_de_pessoas": "={{ $json.quantidade_de_pessoas }}",
+            "idades": "={{ $json.idades }}",
+            "vendedor_nome": "={{ $json.vendedor_nome }}",
+            "telefone_vendedor": "={{ $json.telefone_vendedor }}",
+            "grupo": "={{ $json.grupo }}",
+            "pagina_origem": "={{ $json.pagina_origem }}",
+            "data_envio": "={{ $json.data_envio }}",
+            "hora_submissao": "={{ $json.hora_submissao }}"
           },
           "matchingColumns": [],
           "schema": [
-            {"id": "id", "displayName": "id", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "lead_id", "displayName": "lead_id", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
             {"id": "nome", "displayName": "nome", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
             {"id": "telefone", "displayName": "telefone", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
             {"id": "cidade", "displayName": "cidade", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "plano", "displayName": "plano", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "data", "displayName": "data", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "pagina", "displayName": "pagina", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "atendente", "displayName": "atendente", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"}
+            {"id": "tipo_de_plano", "displayName": "tipo_de_plano", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "quantidade_de_pessoas", "displayName": "quantidade_de_pessoas", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "idades", "displayName": "idades", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "vendedor_nome", "displayName": "vendedor_nome", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "telefone_vendedor", "displayName": "telefone_vendedor", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "grupo", "displayName": "grupo", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "pagina_origem", "displayName": "pagina_origem", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "data_envio", "displayName": "data_envio", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "hora_submissao", "displayName": "hora_submissao", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"}
           ]
         },
         "options": {}
@@ -106,7 +116,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\n  \"phone\": \"5583999471031\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n📋 *ID:* {{ $('Webhook').item.json.id }}\\n👤 *Nome:* {{ $('Webhook').item.json.nome }}\\n📞 *Telefone:* {{ $('Webhook').item.json.telefone }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.plano }}\\n📅 *Data:* {{ $('Webhook').item.json.data }}\\n🌐 *Página:* {{ $('Webhook').item.json.pagina }}\\n👨‍💼 *Atendente:* {{ $('Webhook').item.json.atendente }}\"\n}",
+        "jsonBody": "{\n  \"phone\": \"5583999471031\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n📋 *ID:* {{ $('Webhook').item.json.lead_id }}\\n👤 *Nome:* {{ $('Webhook').item.json.nome }}\\n📞 *Telefone:* {{ $('Webhook').item.json.telefone }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.data_envio }} às {{ $('Webhook').item.json.hora_submissao }}\\n🌐 *Página:* {{ $('Webhook').item.json.pagina_origem }}\\n🏢 *Grupo:* {{ $('Webhook').item.json.grupo }}\\n👨‍💼 *Vendedor:* {{ $('Webhook').item.json.vendedor_nome }} ({{ $('Webhook').item.json.telefone_vendedor }})\"\n}",
         "options": {}
       },
       "id": "zapi-dono",
@@ -155,7 +165,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "1",
+  "versionId": "2",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "local"
