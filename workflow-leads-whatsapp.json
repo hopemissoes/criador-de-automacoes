@@ -33,7 +33,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"55{{ $json.telefone_vendedor.replace(/\\D/g, '') }}\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n📋 *ID:* {{ $json.lead_id }}\\n👤 *Nome:* {{ $json.nome }}\\n📞 *Telefone:* {{ $json.telefone }}\\n🏙️ *Cidade:* {{ $json.cidade }}\\n📦 *Plano:* {{ $json.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $json.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $json.idades }}\\n📅 *Data:* {{ $json.data_envio }} às {{ $json.hora_submissao }}\\n🌐 *Página:* {{ $json.pagina_origem }}\\n🏢 *Grupo:* {{ $json.grupo }}\"\n}",
+        "jsonBody": "={\n  \"phone\": \"55{{ $json.body.vendedor_telefone.replace(/\\D/g, '') }}\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $json.body.nome }}\\n🏙️ *Cidade:* {{ $json.body.cidade }}\\n📦 *Plano:* {{ $json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $json.body.idades }}\\n📅 *Data:* {{ $json.body.data }}\"\n}",
         "options": {}
       },
       "id": "zapi-vendedor",
@@ -58,35 +58,23 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "lead_id": "={{ $json.lead_id }}",
-            "nome": "={{ $json.nome }}",
-            "telefone": "={{ $json.telefone }}",
-            "cidade": "={{ $json.cidade }}",
-            "tipo_de_plano": "={{ $json.tipo_de_plano }}",
-            "quantidade_de_pessoas": "={{ $json.quantidade_de_pessoas }}",
-            "idades": "={{ $json.idades }}",
-            "vendedor_nome": "={{ $json.vendedor_nome }}",
-            "telefone_vendedor": "={{ $json.telefone_vendedor }}",
-            "grupo": "={{ $json.grupo }}",
-            "pagina_origem": "={{ $json.pagina_origem }}",
-            "data_envio": "={{ $json.data_envio }}",
-            "hora_submissao": "={{ $json.hora_submissao }}"
+            "nome": "={{ $json.body.nome }}",
+            "cidade": "={{ $json.body.cidade }}",
+            "tipo_de_plano": "={{ $json.body.tipo_de_plano }}",
+            "quantidade_de_pessoas": "={{ $json.body.quantidade_de_pessoas }}",
+            "idades": "={{ $json.body.idades }}",
+            "vendedor_telefone": "={{ $json.body.vendedor_telefone }}",
+            "data": "={{ $json.body.data }}"
           },
           "matchingColumns": [],
           "schema": [
-            {"id": "lead_id", "displayName": "lead_id", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
             {"id": "nome", "displayName": "nome", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "telefone", "displayName": "telefone", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
             {"id": "cidade", "displayName": "cidade", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
             {"id": "tipo_de_plano", "displayName": "tipo_de_plano", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
             {"id": "quantidade_de_pessoas", "displayName": "quantidade_de_pessoas", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
             {"id": "idades", "displayName": "idades", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "vendedor_nome", "displayName": "vendedor_nome", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "telefone_vendedor", "displayName": "telefone_vendedor", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "grupo", "displayName": "grupo", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "pagina_origem", "displayName": "pagina_origem", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "data_envio", "displayName": "data_envio", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "hora_submissao", "displayName": "hora_submissao", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"}
+            {"id": "vendedor_telefone", "displayName": "vendedor_telefone", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "data", "displayName": "data", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"}
           ]
         },
         "options": {}
@@ -116,7 +104,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\n  \"phone\": \"5583999471031\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n📋 *ID:* {{ $('Webhook').item.json.lead_id }}\\n👤 *Nome:* {{ $('Webhook').item.json.nome }}\\n📞 *Telefone:* {{ $('Webhook').item.json.telefone }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.data_envio }} às {{ $('Webhook').item.json.hora_submissao }}\\n🌐 *Página:* {{ $('Webhook').item.json.pagina_origem }}\\n🏢 *Grupo:* {{ $('Webhook').item.json.grupo }}\\n👨‍💼 *Vendedor:* {{ $('Webhook').item.json.vendedor_nome }} ({{ $('Webhook').item.json.telefone_vendedor }})\"\n}",
+        "jsonBody": "={\n  \"phone\": \"5583999471031\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $('Webhook').item.json.body.nome }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.body.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.body.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.body.data }}\\n👨‍💼 *Vendedor:* {{ $('Webhook').item.json.body.vendedor_telefone }}\"\n}",
         "options": {}
       },
       "id": "zapi-dono",
@@ -165,7 +153,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "2",
+  "versionId": "3",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "local"
