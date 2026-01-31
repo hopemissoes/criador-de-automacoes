@@ -24,7 +24,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\n  \"code\": \"module.exports = async ({ page }) => { return { teste: 'funcionou!' }; };\"\n}",
+        "jsonBody": "{\n  \"code\": \"export default async function ({ page }) { return { teste: 'funcionou!' }; }\"\n}",
         "options": {
           "timeout": 30000
         }
