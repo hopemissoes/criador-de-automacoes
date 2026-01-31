@@ -24,6 +24,10 @@
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "Client-Token",
+              "value": "E999467EA7E7797052653D3E"
             }
           ]
         },
@@ -91,6 +95,10 @@
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "Client-Token",
+              "value": "E999467EA7E7797052653D3E"
             }
           ]
         },
