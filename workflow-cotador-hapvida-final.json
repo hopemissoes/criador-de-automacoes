@@ -24,7 +24,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\n  \"code\": \"module.exports = async ({ page }) => {\\n  const EMAIL = 'jessicamendesbarbosa5@gmail.com';\\n  const SENHA = 'amovoced28';\\n  const URL_LOGIN = 'https://app.cotadorsimplificado.com.br/login';\\n\\n  try {\\n    await page.goto(URL_LOGIN, { waitUntil: 'networkidle2', timeout: 30000 });\\n    \\n    await page.waitForSelector('input[type=\\\"email\\\"]', { timeout: 10000 });\\n    await page.type('input[type=\\\"email\\\"]', EMAIL, { delay: 50 });\\n    await page.type('input[type=\\\"password\\\"]', SENHA, { delay: 50 });\\n    \\n    await Promise.all([\\n      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }),\\n      page.click('button[type=\\\"submit\\\"]')\\n    ]);\\n    \\n    await new Promise(r => setTimeout(r, 3000));\\n    \\n    const cotarButton = await page.$x(\\\"//a[contains(text(), 'Cotar Hapvida')] | //button[contains(text(), 'Cotar Hapvida')] | //*[contains(text(), 'Cotar Hapvida')]\\\");\\n    if (cotarButton.length > 0) {\\n      await cotarButton[0].click();\\n      await new Promise(r => setTimeout(r, 3000));\\n      return {\\n        success: true,\\n        message: 'Login realizado e clicou em Cotar Hapvida!',\\n        url: page.url()\\n      };\\n    } else {\\n      return {\\n        success: true,\\n        message: 'Login realizado, mas botao Cotar Hapvida nao encontrado',\\n        url: page.url()\\n      };\\n    }\\n  } catch (error) {\\n    return {\\n      success: false,\\n      error: error.message\\n    };\\n  }\\n};\"\n}",
+        "jsonBody": "{\n  \"code\": \"export default async function ({ page }) {\\n  const EMAIL = 'jessicamendesbarbosa5@gmail.com';\\n  const SENHA = 'amovoced28';\\n  const URL_LOGIN = 'https://app.cotadorsimplificado.com.br/login';\\n\\n  try {\\n    await page.goto(URL_LOGIN, { waitUntil: 'networkidle2', timeout: 30000 });\\n    \\n    await page.waitForSelector('input[type=\\\"email\\\"]', { timeout: 10000 });\\n    await page.type('input[type=\\\"email\\\"]', EMAIL, { delay: 50 });\\n    await page.type('input[type=\\\"password\\\"]', SENHA, { delay: 50 });\\n    \\n    await Promise.all([\\n      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }),\\n      page.click('button[type=\\\"submit\\\"]')\\n    ]);\\n    \\n    await new Promise(r => setTimeout(r, 3000));\\n    \\n    const buttons = await page.$$('a, button');\\n    for (const btn of buttons) {\\n      const text = await page.evaluate(el => el.textContent, btn);\\n      if (text && text.includes('Cotar Hapvida')) {\\n        await btn.click();\\n        await new Promise(r => setTimeout(r, 3000));\\n        return {\\n          success: true,\\n          message: 'Login realizado e clicou em Cotar Hapvida!',\\n          url: page.url()\\n        };\\n      }\\n    }\\n    \\n    return {\\n      success: true,\\n      message: 'Login realizado, mas botao Cotar Hapvida nao encontrado',\\n      url: page.url()\\n    };\\n  } catch (error) {\\n    return {\\n      success: false,\\n      error: error.message\\n    };\\n  }\\n}\"\n}",
         "options": {
           "timeout": 120000
         }
@@ -167,7 +167,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "1",
+  "versionId": "2",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "local"
