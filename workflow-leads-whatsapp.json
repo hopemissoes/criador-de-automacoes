@@ -17,7 +17,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.z-api.io/instances/3D68970096C0208616098A9CC3C58B07/token/E999467EA7E7797052653D3E/send-text",
+        "url": "https://evolution-n8n.32vkgz.easypanel.host/message/sendText/tabelaplanos",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -26,17 +26,17 @@
               "value": "application/json"
             },
             {
-              "name": "Client-Token",
-              "value": "E999467EA7E7797052653D3E"
+              "name": "apikey",
+              "value": "429683C4C977415CAAFCCE10F7D57E11"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"55{{ $json.body.vendedor_telefone.replace(/\\D/g, '') }}\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $json.body.nome }}\\n🏙️ *Cidade:* {{ $json.body.cidade }}\\n📦 *Plano:* {{ $json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $json.body.idades }}\\n📅 *Data:* {{ $json.body.data }}\"\n}",
+        "jsonBody": "={\n  \"number\": \"55{{ $json.body.vendedor_telefone.replace(/\\D/g, '') }}\",\n  \"text\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $json.body.nome }}\\n🏙️ *Cidade:* {{ $json.body.cidade }}\\n📦 *Plano:* {{ $json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $json.body.idades }}\\n📅 *Data:* {{ $json.body.data }}\"\n}",
         "options": {}
       },
-      "id": "zapi-vendedor",
+      "id": "evolution-vendedor",
       "name": "Enviar para Vendedor",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -88,7 +88,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.z-api.io/instances/3D68970096C0208616098A9CC3C58B07/token/E999467EA7E7797052653D3E/send-text",
+        "url": "https://evolution-n8n.32vkgz.easypanel.host/message/sendText/tabelaplanos",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -97,17 +97,17 @@
               "value": "application/json"
             },
             {
-              "name": "Client-Token",
-              "value": "E999467EA7E7797052653D3E"
+              "name": "apikey",
+              "value": "429683C4C977415CAAFCCE10F7D57E11"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"5583999471031\",\n  \"message\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $('Webhook').item.json.body.nome }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.body.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.body.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.body.data }}\\n👨‍💼 *Vendedor:* {{ $('Webhook').item.json.body.vendedor_telefone }}\"\n}",
+        "jsonBody": "={\n  \"number\": \"5583999471031\",\n  \"text\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $('Webhook').item.json.body.nome }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.body.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.body.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.body.data }}\\n👨‍💼 *Vendedor:* {{ $('Webhook').item.json.body.vendedor_telefone }}\"\n}",
         "options": {}
       },
-      "id": "zapi-dono",
+      "id": "evolution-dono",
       "name": "Enviar para Mim",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -153,7 +153,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "3",
+  "versionId": "4",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "local"
