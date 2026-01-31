@@ -33,7 +33,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"55{{ $json.body.vendedor_telefone.replace(/\\D/g, '') }}\",\n  \"textMessage\": {\n    \"text\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $json.body.nome }}\\n🏙️ *Cidade:* {{ $json.body.cidade }}\\n📦 *Plano:* {{ $json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $json.body.idades }}\\n📅 *Data:* {{ $json.body.data }}\"\n  }\n}",
+        "jsonBody": "={\n  \"number\": \"55{{ $json.body.vendedor_telefone.replace(/\\D/g, '') }}\",\n  \"text\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $json.body.nome }}\\n🏙️ *Cidade:* {{ $json.body.cidade }}\\n📦 *Plano:* {{ $json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $json.body.idades }}\\n📅 *Data:* {{ $json.body.data }}\"\n}",
         "options": {}
       },
       "id": "evolution-vendedor",
@@ -104,7 +104,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"5583999471031\",\n  \"textMessage\": {\n    \"text\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $('Webhook').item.json.body.nome }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.body.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.body.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.body.data }}\\n👨‍💼 *Vendedor:* {{ $('Webhook').item.json.body.vendedor_telefone }}\"\n  }\n}",
+        "jsonBody": "={\n  \"number\": \"5583999471031\",\n  \"text\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $('Webhook').item.json.body.nome }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.body.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.body.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.body.data }}\\n👨‍💼 *Vendedor:* {{ $('Webhook').item.json.body.vendedor_telefone }}\"\n}",
         "options": {}
       },
       "id": "evolution-dono",
