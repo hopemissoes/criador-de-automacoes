@@ -1,0 +1,176 @@
+{
+  "name": "Cotador Hapvida - FINAL",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Executar Manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-docker.32vkgz.easypanel.host/function",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"code\": \"module.exports = async ({ page }) => {\\n  const EMAIL = 'jessicamendesbarbosa5@gmail.com';\\n  const SENHA = 'amovoced28';\\n  const URL_LOGIN = 'https://app.cotadorsimplificado.com.br/login';\\n\\n  try {\\n    await page.goto(URL_LOGIN, { waitUntil: 'networkidle2', timeout: 30000 });\\n    \\n    await page.waitForSelector('input[type=\\\"email\\\"]', { timeout: 10000 });\\n    await page.type('input[type=\\\"email\\\"]', EMAIL, { delay: 50 });\\n    await page.type('input[type=\\\"password\\\"]', SENHA, { delay: 50 });\\n    \\n    await Promise.all([\\n      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }),\\n      page.click('button[type=\\\"submit\\\"]')\\n    ]);\\n    \\n    await new Promise(r => setTimeout(r, 3000));\\n    \\n    const cotarButton = await page.$x(\\\"//a[contains(text(), 'Cotar Hapvida')] | //button[contains(text(), 'Cotar Hapvida')] | //*[contains(text(), 'Cotar Hapvida')]\\\");\\n    if (cotarButton.length > 0) {\\n      await cotarButton[0].click();\\n      await new Promise(r => setTimeout(r, 3000));\\n      return {\\n        success: true,\\n        message: 'Login realizado e clicou em Cotar Hapvida!',\\n        url: page.url()\\n      };\\n    } else {\\n      return {\\n        success: true,\\n        message: 'Login realizado, mas botao Cotar Hapvida nao encontrado',\\n        url: page.url()\\n      };\\n    }\\n  } catch (error) {\\n    return {\\n      success: false,\\n      error: error.message\\n    };\\n  }\\n};\"\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "browserless-function",
+      "name": "Executar Automacao",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-success",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-resultado",
+      "name": "Sucesso?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "429683C4C977415CAAFCCE10F7D57E11"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"number\": \"5583999471031\",\n  \"text\": \"*COTADOR HAPVIDA*\\n\\nAutomacao executada com sucesso!\\n\\n{{ $json.message }}\\n\\nURL: {{ $json.url }}\"\n}",
+        "options": {}
+      },
+      "id": "whatsapp-sucesso",
+      "name": "WhatsApp Sucesso",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "429683C4C977415CAAFCCE10F7D57E11"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"number\": \"5583999471031\",\n  \"text\": \"*COTADOR HAPVIDA*\\n\\nErro na automacao!\\n\\nErro: {{ $json.error }}\"\n}",
+        "options": {}
+      },
+      "id": "whatsapp-erro",
+      "name": "WhatsApp Erro",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1000, 400]
+    }
+  ],
+  "connections": {
+    "Executar Manualmente": {
+      "main": [
+        [
+          {
+            "node": "Executar Automacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar Automacao": {
+      "main": [
+        [
+          {
+            "node": "Sucesso?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sucesso?": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "local"
+  },
+  "tags": []
+}
