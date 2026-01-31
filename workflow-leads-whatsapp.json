@@ -1,5 +1,5 @@
 {
-  "name": "Leads WhatsApp + Planilha",
+  "name": "Leads WhatsApp + Planilha (DRV e Seu Souza)",
   "nodes": [
     {
       "parameters": {
@@ -11,8 +11,37 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [250, 300],
+      "position": [250, 400],
       "webhookId": "leads-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-drv",
+              "leftValue": "={{ $json.body.grupo }}",
+              "rightValue": "DRV",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-grupo",
+      "name": "IF Grupo",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [450, 400]
     },
     {
       "parameters": {
@@ -33,14 +62,140 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"{{ $json.body.vendedor_telefone.replace(/\\D/g, '') }}\",\n  \"text\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $json.body.nome }}\\n🏙️ *Cidade:* {{ $json.body.cidade }}\\n📦 *Plano:* {{ $json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $json.body.idades }}\\n📅 *Data:* {{ $json.body.data }}\"\n}",
-        "options": {}
+        "jsonBody": "={\n  \"number\": \"{{ $('Webhook').item.json.body.vendedor_telefone.replace(/\\D/g, '') }}\",\n  \"text\": \"🔔 *NOVO LEAD - DRV!*\\n\\n👤 *Nome:* {{ $('Webhook').item.json.body.nome }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.body.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.body.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.body.data }}\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "id": "evolution-vendedor",
-      "name": "Enviar para Vendedor",
+      "id": "evolution-vendedor-drv",
+      "name": "Enviar Vendedor DRV",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [500, 300]
+      "position": [700, 300],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "429683C4C977415CAAFCCE10F7D57E11"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Webhook').item.json.body.vendedor_telefone.replace(/\\D/g, '') }}\",\n  \"text\": \"🔔 *NOVO LEAD - SEU SOUZA!*\\n\\n👤 *Nome:* {{ $('Webhook').item.json.body.nome }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.body.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.body.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.body.data }}\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "evolution-vendedor-souza",
+      "name": "Enviar Vendedor Seu Souza",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 500],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-error-drv",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-error-evolution-drv",
+      "name": "Erro Evolution DRV?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-error-souza",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-error-evolution-souza",
+      "name": "Erro Evolution Souza?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "sendTo": "netoppcem@gmail.com",
+        "subject": "=ERRO - Falha no envio WhatsApp (DRV) - Lead: {{ $('Webhook').item.json.body.nome }}",
+        "message": "=Houve uma falha no envio da mensagem WhatsApp para o vendedor.\n\n**Grupo:** DRV\n**Lead:** {{ $('Webhook').item.json.body.nome }}\n**Telefone Vendedor:** {{ $('Webhook').item.json.body.vendedor_telefone }}\n**Erro:** {{ $json.error }}\n\nVerifique a Evolution API.",
+        "options": {}
+      },
+      "id": "email-erro-evolution-drv",
+      "name": "Email Erro Evolution DRV",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1100, 200]
+    },
+    {
+      "parameters": {
+        "sendTo": "netoppcem@gmail.com",
+        "subject": "=ERRO - Falha no envio WhatsApp (Seu Souza) - Lead: {{ $('Webhook').item.json.body.nome }}",
+        "message": "=Houve uma falha no envio da mensagem WhatsApp para o vendedor.\n\n**Grupo:** Seu Souza\n**Lead:** {{ $('Webhook').item.json.body.nome }}\n**Telefone Vendedor:** {{ $('Webhook').item.json.body.vendedor_telefone }}\n**Erro:** {{ $json.error }}\n\nVerifique a Evolution API.",
+        "options": {}
+      },
+      "id": "email-erro-evolution-souza",
+      "name": "Email Erro Evolution Souza",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1100, 400]
     },
     {
       "parameters": {
@@ -58,13 +213,13 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "nome": "={{ $json.body.nome }}",
-            "cidade": "={{ $json.body.cidade }}",
-            "tipo_de_plano": "={{ $json.body.tipo_de_plano }}",
-            "quantidade_de_pessoas": "={{ $json.body.quantidade_de_pessoas }}",
-            "idades": "={{ $json.body.idades }}",
-            "vendedor_telefone": "={{ $json.body.vendedor_telefone }}",
-            "data": "={{ $json.body.data }}"
+            "nome": "={{ $('Webhook').item.json.body.nome }}",
+            "cidade": "={{ $('Webhook').item.json.body.cidade }}",
+            "tipo_de_plano": "={{ $('Webhook').item.json.body.tipo_de_plano }}",
+            "quantidade_de_pessoas": "={{ $('Webhook').item.json.body.quantidade_de_pessoas }}",
+            "idades": "={{ $('Webhook').item.json.body.idades }}",
+            "vendedor_telefone": "={{ $('Webhook').item.json.body.vendedor_telefone }}",
+            "data": "={{ $('Webhook').item.json.body.data }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -79,11 +234,140 @@
         },
         "options": {}
       },
-      "id": "google-sheets",
-      "name": "Google Sheets",
+      "id": "sheets-drv",
+      "name": "Sheets DRV",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [750, 300]
+      "position": [1100, 300],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "INSERIR_ID_PLANILHA_SEU_SOUZA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nome": "={{ $('Webhook').item.json.body.nome }}",
+            "cidade": "={{ $('Webhook').item.json.body.cidade }}",
+            "tipo_de_plano": "={{ $('Webhook').item.json.body.tipo_de_plano }}",
+            "quantidade_de_pessoas": "={{ $('Webhook').item.json.body.quantidade_de_pessoas }}",
+            "idades": "={{ $('Webhook').item.json.body.idades }}",
+            "vendedor_telefone": "={{ $('Webhook').item.json.body.vendedor_telefone }}",
+            "data": "={{ $('Webhook').item.json.body.data }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "nome", "displayName": "nome", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "cidade", "displayName": "cidade", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "tipo_de_plano", "displayName": "tipo_de_plano", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "quantidade_de_pessoas", "displayName": "quantidade_de_pessoas", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "idades", "displayName": "idades", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "vendedor_telefone", "displayName": "vendedor_telefone", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "data", "displayName": "data", "required": false, "defaultMatch": false, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "sheets-souza",
+      "name": "Sheets Seu Souza",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1100, 500],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-sheets-error-drv",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-error-sheets-drv",
+      "name": "Erro Sheets DRV?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-sheets-error-souza",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-error-sheets-souza",
+      "name": "Erro Sheets Souza?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1300, 500]
+    },
+    {
+      "parameters": {
+        "sendTo": "netoppcem@gmail.com",
+        "subject": "=ERRO - Falha na planilha (DRV) - Lead: {{ $('Webhook').item.json.body.nome }}",
+        "message": "=Houve uma falha ao inserir dados na planilha.\n\n**Grupo:** DRV\n**Lead:** {{ $('Webhook').item.json.body.nome }}\n**Erro:** {{ $json.error }}\n\nVerifique a conexao com o Google Sheets.",
+        "options": {}
+      },
+      "id": "email-erro-sheets-drv",
+      "name": "Email Erro Sheets DRV",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1500, 200]
+    },
+    {
+      "parameters": {
+        "sendTo": "netoppcem@gmail.com",
+        "subject": "=ERRO - Falha na planilha (Seu Souza) - Lead: {{ $('Webhook').item.json.body.nome }}",
+        "message": "=Houve uma falha ao inserir dados na planilha.\n\n**Grupo:** Seu Souza\n**Lead:** {{ $('Webhook').item.json.body.nome }}\n**Erro:** {{ $json.error }}\n\nVerifique a conexao com o Google Sheets.",
+        "options": {}
+      },
+      "id": "email-erro-sheets-souza",
+      "name": "Email Erro Sheets Souza",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1500, 400]
     },
     {
       "parameters": {
@@ -104,14 +388,42 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"5583999471031\",\n  \"text\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $('Webhook').item.json.body.nome }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.body.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.body.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.body.data }}\\n👨‍💼 *Vendedor:* {{ $('Webhook').item.json.body.vendedor_telefone }}\"\n}",
+        "jsonBody": "={\n  \"number\": \"5583999471031\",\n  \"text\": \"🔔 *NOVO LEAD - DRV!*\\n\\n👤 *Nome:* {{ $('Webhook').item.json.body.nome }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.body.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.body.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.body.data }}\\n👨‍💼 *Vendedor:* {{ $('Webhook').item.json.body.vendedor_telefone }}\"\n}",
         "options": {}
       },
-      "id": "evolution-dono",
-      "name": "Enviar para Mim",
+      "id": "evolution-dono-drv",
+      "name": "Enviar para Mim DRV",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1000, 300]
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "429683C4C977415CAAFCCE10F7D57E11"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"5583999471031\",\n  \"text\": \"🔔 *NOVO LEAD - SEU SOUZA!*\\n\\n👤 *Nome:* {{ $('Webhook').item.json.body.nome }}\\n🏙️ *Cidade:* {{ $('Webhook').item.json.body.cidade }}\\n📦 *Plano:* {{ $('Webhook').item.json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $('Webhook').item.json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $('Webhook').item.json.body.idades }}\\n📅 *Data:* {{ $('Webhook').item.json.body.data }}\\n👨‍💼 *Vendedor:* {{ $('Webhook').item.json.body.vendedor_telefone }}\"\n}",
+        "options": {}
+      },
+      "id": "evolution-dono-souza",
+      "name": "Enviar para Mim Souza",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1500, 500]
     }
   ],
   "connections": {
@@ -119,29 +431,141 @@
       "main": [
         [
           {
-            "node": "Enviar para Vendedor",
+            "node": "IF Grupo",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Enviar para Vendedor": {
+    "IF Grupo": {
       "main": [
         [
           {
-            "node": "Google Sheets",
+            "node": "Enviar Vendedor DRV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar Vendedor Seu Souza",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Google Sheets": {
+    "Enviar Vendedor DRV": {
       "main": [
         [
           {
-            "node": "Enviar para Mim",
+            "node": "Erro Evolution DRV?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Vendedor Seu Souza": {
+      "main": [
+        [
+          {
+            "node": "Erro Evolution Souza?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erro Evolution DRV?": {
+      "main": [
+        [
+          {
+            "node": "Email Erro Evolution DRV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheets DRV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erro Evolution Souza?": {
+      "main": [
+        [
+          {
+            "node": "Email Erro Evolution Souza",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheets Seu Souza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets DRV": {
+      "main": [
+        [
+          {
+            "node": "Erro Sheets DRV?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets Seu Souza": {
+      "main": [
+        [
+          {
+            "node": "Erro Sheets Souza?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erro Sheets DRV?": {
+      "main": [
+        [
+          {
+            "node": "Email Erro Sheets DRV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar para Mim DRV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erro Sheets Souza?": {
+      "main": [
+        [
+          {
+            "node": "Email Erro Sheets Souza",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar para Mim Souza",
             "type": "main",
             "index": 0
           }
@@ -153,7 +577,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "4",
+  "versionId": "5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "local"
