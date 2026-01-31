@@ -33,7 +33,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"55{{ $json.body.vendedor_telefone.replace(/\\D/g, '') }}\",\n  \"text\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $json.body.nome }}\\n🏙️ *Cidade:* {{ $json.body.cidade }}\\n📦 *Plano:* {{ $json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $json.body.idades }}\\n📅 *Data:* {{ $json.body.data }}\"\n}",
+        "jsonBody": "={\n  \"number\": \"{{ $json.body.vendedor_telefone.replace(/\\D/g, '') }}\",\n  \"text\": \"🔔 *NOVO LEAD!*\\n\\n👤 *Nome:* {{ $json.body.nome }}\\n🏙️ *Cidade:* {{ $json.body.cidade }}\\n📦 *Plano:* {{ $json.body.tipo_de_plano }}\\n👥 *Qtd Pessoas:* {{ $json.body.quantidade_de_pessoas }}\\n🎂 *Idades:* {{ $json.body.idades }}\\n📅 *Data:* {{ $json.body.data }}\"\n}",
         "options": {}
       },
       "id": "evolution-vendedor",
