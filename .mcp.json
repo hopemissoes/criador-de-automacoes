@@ -7,7 +7,7 @@
         "MCP_MODE": "stdio",
         "LOG_LEVEL": "error",
         "DISABLE_CONSOLE_OUTPUT": "true",
-        "N8N_API_URL": "http://localhost:5678",
+        "N8N_API_URL": "https://tabelaplanos.app.n8n.cloud",
         "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZTljOTE3Yy01N2JlLTQxNmUtYTU0ZC1kNDhlNDA1NjllODQiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY5ODA2MzY1fQ.Ltmxike21-mGVUfM0t7t2BIaTRYBzZUDnbA29eIXEN0"
       }
     }
