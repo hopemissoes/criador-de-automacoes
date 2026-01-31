@@ -17,7 +17,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://evolution-n8n.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -88,7 +88,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://evolution-n8n.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
