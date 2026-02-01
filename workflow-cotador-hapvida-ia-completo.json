@@ -173,6 +173,34 @@
     },
     {
       "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "429683C4C977415CAAFCCE10F7D57E11"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"5583999471031\",\n  \"text\": \"*COTADOR HAPVIDA - Iteracao {{ $json.iteracao + 1 }}*\\n\\nAcao: {{ $json.acao }}\\nEtapa: {{ $json.etapa || 'N/A' }}\\nMotivo: {{ $json.motivo }}\\n\\nURL: {{ $json.url }}\"\n}",
+        "options": {}
+      },
+      "id": "whatsapp-progresso",
+      "name": "WhatsApp Progresso",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1700, 200]
+    },
+    {
+      "parameters": {
         "rules": {
           "values": [
             {
@@ -614,6 +642,17 @@
       ]
     },
     "4. Parse IA": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Progresso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Progresso": {
       "main": [
         [
           {
