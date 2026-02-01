@@ -1,5 +1,5 @@
 {
-  "name": "Cotador Hapvida - Sessao v11 (Scroll)",
+  "name": "Cotador Hapvida - Sessao v12 (Entry Fix)",
   "nodes": [
     {
       "parameters": {},
@@ -131,7 +131,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $('7-ExecutarFormulario').first().json;\nconst cookies = JSON.stringify(input.cookies || []);\nconst localStorage = JSON.stringify(input.localStorage || {});\nconst lastUrl = input.url || 'https://app.cotadorsimplificado.com.br';\n\nconst code = `export default async function ({ page }) {\n  const wait = (ms) => new Promise(r => setTimeout(r, ms));\n  const cookies = ${cookies};\n  const ls = ${localStorage};\n\n  try {\n    await page.setViewport({ width: 1280, height: 800 });\n    await page.goto('${lastUrl}', { waitUntil: 'domcontentloaded', timeout: 30000 });\n    if (cookies.length > 0) await page.setCookie(...cookies);\n    await page.evaluate((ls) => {\n      for (const [key, value] of Object.entries(ls)) window.localStorage.setItem(key, value);\n    }, ls);\n    await page.reload({ waitUntil: 'networkidle2' });\n    await wait(3000);\n    \n    // Faz scroll para carregar todos os inputs\n    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));\n    await wait(1000);\n    await page.evaluate(() => window.scrollTo(0, 0));\n    await wait(1000);\n    \n    // Conta inputs antes\n    const inputsAntes = await page.evaluate(() => document.querySelectorAll('input.Input').length);\n    \n    // Preenche cada input individualmente com scroll\n    const preenchidas = await page.evaluate(() => {\n      let count = 0;\n      const inputs = document.querySelectorAll('input.Input');\n      for (let i = 0; i < inputs.length; i++) {\n        try {\n          inputs[i].scrollIntoView({ behavior: 'instant', block: 'center' });\n          inputs[i].focus();\n          inputs[i].value = '1';\n          inputs[i].dispatchEvent(new Event('input', { bubbles: true }));\n          inputs[i].dispatchEvent(new Event('change', { bubbles: true }));\n          inputs[i].blur();\n          count++;\n        } catch(e) {}\n      }\n      return count;\n    });\n    \n    // Conta inputs depois\n    const inputsDepois = await page.evaluate(() => document.querySelectorAll('input.Input').length);\n    \n    await wait(1000);\n    const screenshot = await page.screenshot({ encoding: 'base64' });\n    return { success: true, fase: 'FAIXAS', preenchidas, debug: { antes: inputsAntes, depois: inputsDepois }, screenshot };\n  } catch (error) {\n    const screenshot = await page.screenshot({ encoding: 'base64' }).catch(() => null);\n    return { success: false, fase: 'FAIXAS', error: error.message, screenshot };\n  }\n}`;\n\nreturn [{ json: { code } }];"
+        "jsCode": "const input = $('7-ExecutarFormulario').first().json;\nconst cookies = JSON.stringify(input.cookies || []);\nconst localStorage = JSON.stringify(input.localStorage || {});\nconst lastUrl = input.url || 'https://app.cotadorsimplificado.com.br';\n\nconst code = `export default async function ({ page }) {\n  const wait = (ms) => new Promise(r => setTimeout(r, ms));\n  const cookies = ${cookies};\n  const ls = ${localStorage};\n\n  try {\n    await page.setViewport({ width: 1280, height: 800 });\n    await page.goto('${lastUrl}', { waitUntil: 'domcontentloaded', timeout: 30000 });\n    if (cookies.length > 0) await page.setCookie(...cookies);\n    await page.evaluate((ls) => {\n      for (const [key, value] of Object.entries(ls)) window.localStorage.setItem(key, value);\n    }, ls);\n    await page.reload({ waitUntil: 'networkidle2' });\n    await wait(3000);\n    \n    // Faz scroll para carregar todos os inputs\n    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));\n    await wait(1000);\n    await page.evaluate(() => window.scrollTo(0, 0));\n    await wait(1000);\n    \n    // Preenche cada faixa de entry-1 ate entry-10\n    const preenchidas = await page.evaluate(() => {\n      let count = 0;\n      for (let i = 1; i <= 10; i++) {\n        try {\n          const input = document.querySelector('.entry-' + i + ' input.Input');\n          if (input) {\n            input.scrollIntoView({ behavior: 'instant', block: 'center' });\n            input.focus();\n            input.value = '1';\n            input.dispatchEvent(new Event('input', { bubbles: true }));\n            input.dispatchEvent(new Event('change', { bubbles: true }));\n            input.blur();\n            count++;\n          }\n        } catch(e) {}\n      }\n      return count;\n    });\n    \n    const totalInputs = await page.evaluate(() => document.querySelectorAll('input.Input').length);\n    \n    await wait(1000);\n    const screenshot = await page.screenshot({ encoding: 'base64' });\n    return { success: true, fase: 'FAIXAS', preenchidas, totalInputs, screenshot };\n  } catch (error) {\n    const screenshot = await page.screenshot({ encoding: 'base64' }).catch(() => null);\n    return { success: false, fase: 'FAIXAS', error: error.message, screenshot };\n  }\n}`;\n\nreturn [{ json: { code } }];"
       },
       "id": "montar-faixas",
       "name": "9-MontarFaixas",
@@ -164,7 +164,7 @@
         "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { number: '5583999471031', text: '*FASE 3: ' + $json.fase + '*\\n\\nStatus: ' + ($json.success ? 'OK' : 'ERRO') + '\\nFaixas preenchidas: ' + ($json.preenchidas || 0) + '\\n\\n*Debug:*\\nInputs antes: ' + ($json.debug ? $json.debug.antes : '?') + '\\nInputs depois: ' + ($json.debug ? $json.debug.depois : '?') + '\\n\\nErro: ' + ($json.error || 'Nenhum') } }}",
+        "jsonBody": "={{ { number: '5583999471031', text: 'FASE 3: FAIXAS - Preenchidas: ' + ($json.preenchidas || 0) + '/10 - Total inputs: ' + ($json.totalInputs || 0) } }}",
         "options": {}
       },
       "id": "whatsapp-fase3",
@@ -190,7 +190,7 @@
   },
   "active": false,
   "settings": {"executionOrder": "v1"},
-  "versionId": "10",
+  "versionId": "12",
   "meta": {"templateCredsSetupCompleted": true, "instanceId": "local"},
   "tags": []
 }
