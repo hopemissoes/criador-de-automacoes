@@ -1,5 +1,5 @@
 {
-  "name": "Cotador Hapvida - Sessao v12 (Entry Fix)",
+  "name": "Cotador Hapvida - Sessao v14 (Placeholder)",
   "nodes": [
     {
       "parameters": {},
@@ -131,7 +131,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $('7-ExecutarFormulario').first().json;\nconst cookies = JSON.stringify(input.cookies || []);\nconst localStorage = JSON.stringify(input.localStorage || {});\nconst lastUrl = input.url || 'https://app.cotadorsimplificado.com.br';\n\nconst code = `export default async function ({ page }) {\n  const wait = (ms) => new Promise(r => setTimeout(r, ms));\n  const cookies = ${cookies};\n  const ls = ${localStorage};\n\n  try {\n    await page.setViewport({ width: 1280, height: 800 });\n    await page.goto('${lastUrl}', { waitUntil: 'domcontentloaded', timeout: 30000 });\n    if (cookies.length > 0) await page.setCookie(...cookies);\n    await page.evaluate((ls) => {\n      for (const [key, value] of Object.entries(ls)) window.localStorage.setItem(key, value);\n    }, ls);\n    await page.reload({ waitUntil: 'networkidle2' });\n    await wait(3000);\n    \n    // Scroll down and up multiple times to load all inputs\n    for (let s = 0; s < 3; s++) {\n      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));\n      await wait(500);\n    }\n    await page.evaluate(() => window.scrollTo(0, 0));\n    await wait(1000);\n    \n    // Preenche TODOS os inputs com classe Input\n    const result = await page.evaluate(() => {\n      let count = 0;\n      const inputs = document.querySelectorAll('input.Input');\n      const total = inputs.length;\n      for (let i = 0; i < inputs.length; i++) {\n        try {\n          inputs[i].scrollIntoView({ behavior: 'instant', block: 'center' });\n          inputs[i].focus();\n          inputs[i].value = '1';\n          inputs[i].dispatchEvent(new Event('input', { bubbles: true }));\n          inputs[i].dispatchEvent(new Event('change', { bubbles: true }));\n          inputs[i].blur();\n          count++;\n        } catch(e) {}\n      }\n      return { count, total };\n    });\n    \n    await wait(1000);\n    const screenshot = await page.screenshot({ encoding: 'base64' });\n    return { success: true, fase: 'FAIXAS', preenchidas: result.count, totalInputs: result.total, screenshot };\n  } catch (error) {\n    const screenshot = await page.screenshot({ encoding: 'base64' }).catch(() => null);\n    return { success: false, fase: 'FAIXAS', error: error.message, screenshot };\n  }\n}`;\n\nreturn [{ json: { code } }];"
+        "jsCode": "const input = $('7-ExecutarFormulario').first().json;\nconst cookies = JSON.stringify(input.cookies || []);\nconst localStorage = JSON.stringify(input.localStorage || {});\nconst lastUrl = input.url || 'https://app.cotadorsimplificado.com.br';\n\nconst code = `export default async function ({ page }) {\n  const wait = (ms) => new Promise(r => setTimeout(r, ms));\n  const cookies = ${cookies};\n  const ls = ${localStorage};\n\n  try {\n    await page.setViewport({ width: 1280, height: 800 });\n    await page.goto('${lastUrl}', { waitUntil: 'domcontentloaded', timeout: 30000 });\n    if (cookies.length > 0) await page.setCookie(...cookies);\n    await page.evaluate((ls) => {\n      for (const [key, value] of Object.entries(ls)) window.localStorage.setItem(key, value);\n    }, ls);\n    await page.reload({ waitUntil: 'networkidle2' });\n    await wait(5000);\n    \n    // Busca inputs pelo placeholder=0\n    const inputs = await page.$$('input[placeholder=\"0\"]');\n    const total = inputs.length;\n    let count = 0;\n    \n    for (const inp of inputs) {\n      try {\n        await inp.click({ clickCount: 3 });\n        await inp.type('1');\n        count++;\n        await wait(200);\n      } catch(e) {}\n    }\n    \n    await wait(1000);\n    const screenshot = await page.screenshot({ encoding: 'base64' });\n    return { success: true, fase: 'FAIXAS', preenchidas: count, totalInputs: total, screenshot };\n  } catch (error) {\n    const screenshot = await page.screenshot({ encoding: 'base64' }).catch(() => null);\n    return { success: false, fase: 'FAIXAS', error: error.message, screenshot };\n  }\n}`;\n\nreturn [{ json: { code } }];"
       },
       "id": "montar-faixas",
       "name": "9-MontarFaixas",
@@ -190,7 +190,7 @@
   },
   "active": false,
   "settings": {"executionOrder": "v1"},
-  "versionId": "13",
+  "versionId": "14",
   "meta": {"templateCredsSetupCompleted": true, "instanceId": "local"},
   "tags": []
 }
