@@ -255,29 +255,13 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://evolution-docker.32vkgz.easypanel.host/function",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"code\": \"export default async function ({ page }) {\\n    const cookies = {{ JSON.stringify($json.cookies) }};\\n    const targetUrl = '{{ $json.url }}';\\n    const elementIndex = {{ $json.index || 0 }};\\n    const elementos = {{ JSON.stringify($json.elementos) }};\\n    \\n    await page.setViewport({ width: 1280, height: 900 });\\n    \\n    if (cookies && cookies.length > 0) {\\n      await page.setCookie(...cookies);\\n    }\\n    \\n    await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 30000 });\\n    await new Promise(r => setTimeout(r, 2000));\\n    \\n    const el = elementos.find(e => e.i === elementIndex);\\n    let clicked = 'nao encontrado';\\n    \\n    if (el) {\\n      await page.mouse.click(el.x, el.y);\\n      clicked = el.text || 'elemento ' + elementIndex;\\n      await new Promise(r => setTimeout(r, 2000));\\n    }\\n    \\n    return {\\n      success: true,\\n      acao: 'clicou',\\n      clicked: clicked,\\n      url: page.url(),\\n      cookies: await page.cookies()\\n    };\\n  }\"\n}",
-        "options": {
-          "timeout": 60000
-        }
+        "jsCode": "const data = $input.first().json;\nconst cookies = data.cookies || [];\nconst targetUrl = data.url || '';\nconst elementIndex = data.index || 0;\nconst elementos = data.elementos || [];\n\nconst code = `export default async function ({ page }) {\n  const cookies = ${JSON.stringify(cookies)};\n  const targetUrl = '${targetUrl.replace(/'/g, \"\\\\'\")}'; \n  const elementIndex = ${elementIndex};\n  const elementos = ${JSON.stringify(elementos)};\n  \n  await page.setViewport({ width: 1280, height: 900 });\n  \n  if (cookies && cookies.length > 0) {\n    await page.setCookie(...cookies);\n  }\n  \n  await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 30000 });\n  await new Promise(r => setTimeout(r, 2000));\n  \n  const el = elementos.find(e => e.i === elementIndex);\n  let clicked = 'nao encontrado';\n  \n  if (el) {\n    await page.mouse.click(el.x, el.y);\n    clicked = el.text || 'elemento ' + elementIndex;\n    await new Promise(r => setTimeout(r, 2000));\n  }\n  \n  return {\n    success: true,\n    acao: 'clicou',\n    clicked: clicked,\n    url: page.url(),\n    cookies: await page.cookies()\n  };\n}`;\n\nreturn [{ json: { code, iteracao: data.iteracao, historico: data.historico } }];"
       },
-      "id": "executar-clique",
-      "name": "5a. Executa Clique",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [2050, 50]
+      "id": "preparar-clique",
+      "name": "Preparar Clique",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1950, 50]
     },
     {
       "parameters": {
@@ -294,7 +278,43 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"code\": \"export default async function ({ page }) {\\n    const cookies = {{ JSON.stringify($json.cookies) }};\\n    const targetUrl = '{{ $json.url }}';\\n    const elementIndex = {{ $json.index || 0 }};\\n    const elementos = {{ JSON.stringify($json.elementos) }};\\n    const valorDigitar = '{{ $json.valor || '' }}';\\n    \\n    await page.setViewport({ width: 1280, height: 900 });\\n    \\n    if (cookies && cookies.length > 0) {\\n      await page.setCookie(...cookies);\\n    }\\n    \\n    await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 30000 });\\n    await new Promise(r => setTimeout(r, 2000));\\n    \\n    const el = elementos.find(e => e.i === elementIndex);\\n    let resultado = 'nao encontrado';\\n    \\n    if (el) {\\n      await page.mouse.click(el.x, el.y);\\n      await new Promise(r => setTimeout(r, 500));\\n      \\n      // Limpar campo e digitar\\n      await page.keyboard.down('Control');\\n      await page.keyboard.press('a');\\n      await page.keyboard.up('Control');\\n      await page.keyboard.type(valorDigitar, { delay: 30 });\\n      \\n      resultado = 'digitou: ' + valorDigitar;\\n      await new Promise(r => setTimeout(r, 1000));\\n    }\\n    \\n    return {\\n      success: true,\\n      acao: 'digitou',\\n      resultado: resultado,\\n      url: page.url(),\\n      cookies: await page.cookies()\\n    };\\n  }\"\n}",
+        "jsonBody": "={ \"code\": {{ JSON.stringify($json.code) }} }",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "executar-clique",
+      "name": "5a. Executa Clique",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2150, 50]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst cookies = data.cookies || [];\nconst targetUrl = data.url || '';\nconst elementIndex = data.index || 0;\nconst elementos = data.elementos || [];\nconst valorDigitar = data.valor || '';\n\nconst code = `export default async function ({ page }) {\n  const cookies = ${JSON.stringify(cookies)};\n  const targetUrl = '${targetUrl.replace(/'/g, \"\\\\'\")}'; \n  const elementIndex = ${elementIndex};\n  const elementos = ${JSON.stringify(elementos)};\n  const valorDigitar = '${valorDigitar.replace(/'/g, \"\\\\'\")}'; \n  \n  await page.setViewport({ width: 1280, height: 900 });\n  \n  if (cookies && cookies.length > 0) {\n    await page.setCookie(...cookies);\n  }\n  \n  await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 30000 });\n  await new Promise(r => setTimeout(r, 2000));\n  \n  const el = elementos.find(e => e.i === elementIndex);\n  let resultado = 'nao encontrado';\n  \n  if (el) {\n    await page.mouse.click(el.x, el.y);\n    await new Promise(r => setTimeout(r, 500));\n    \n    // Limpar campo e digitar\n    await page.keyboard.down('Control');\n    await page.keyboard.press('a');\n    await page.keyboard.up('Control');\n    await page.keyboard.type(valorDigitar, { delay: 30 });\n    \n    resultado = 'digitou: ' + valorDigitar;\n    await new Promise(r => setTimeout(r, 1000));\n  }\n  \n  return {\n    success: true,\n    acao: 'digitou',\n    resultado: resultado,\n    url: page.url(),\n    cookies: await page.cookies()\n  };\n}`;\n\nreturn [{ json: { code, iteracao: data.iteracao, historico: data.historico } }];"
+      },
+      "id": "preparar-digitar",
+      "name": "Preparar Digitar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1950, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-docker.32vkgz.easypanel.host/function",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"code\": {{ JSON.stringify($json.code) }} }",
         "options": {
           "timeout": 60000
         }
@@ -608,14 +628,14 @@
       "main": [
         [
           {
-            "node": "5a. Executa Clique",
+            "node": "Preparar Clique",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "5b. Executa Digitar",
+            "node": "Preparar Digitar",
             "type": "main",
             "index": 0
           }
@@ -630,6 +650,28 @@
         [
           {
             "node": "WhatsApp Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Clique": {
+      "main": [
+        [
+          {
+            "node": "5a. Executa Clique",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Digitar": {
+      "main": [
+        [
+          {
+            "node": "5b. Executa Digitar",
             "type": "main",
             "index": 0
           }
