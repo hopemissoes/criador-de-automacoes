@@ -1,5 +1,5 @@
 {
-  "name": "Cotador Hapvida - Sessao Inteligente",
+  "name": "Cotador Hapvida - Sessao Inteligente v3",
   "nodes": [
     {
       "parameters": {},
@@ -11,9 +11,9 @@
     },
     {
       "parameters": {
-        "jsCode": "// Verifica se tem sessao salva no Static Data\nconst staticData = $getWorkflowStaticData('global');\nconst cookies = staticData.cookies || [];\nconst localStorage = staticData.localStorage || {};\nconst ultimoLogin = staticData.ultimoLogin || null;\n\n// Sessao valida se tem cookies e login foi ha menos de 1 hora\nconst agora = Date.now();\nconst umaHora = 60 * 60 * 1000;\nconst sessaoValida = cookies.length > 0 && ultimoLogin && (agora - new Date(ultimoLogin).getTime()) < umaHora;\n\nreturn [{\n  json: {\n    temSessao: sessaoValida,\n    cookies: cookies,\n    localStorage: localStorage,\n    ultimoLogin: ultimoLogin\n  }\n}];"
+        "jsCode": "// VERIFICA SESSAO SALVA\nconst staticData = $getWorkflowStaticData('global');\nconst cookies = staticData.cookies || [];\nconst localStorage = staticData.localStorage || {};\nconst ultimoLogin = staticData.ultimoLogin || null;\nconst urlSalva = staticData.url || '';\n\nconst agora = Date.now();\nconst umaHora = 60 * 60 * 1000;\nconst temSessao = cookies.length > 0 && ultimoLogin && (agora - new Date(ultimoLogin).getTime()) < umaHora;\n\nreturn [{\n  json: {\n    temSessao,\n    cookies,\n    localStorage,\n    urlSalva,\n    ultimoLogin\n  }\n}];"
       },
-      "id": "verificar-sessao",
+      "id": "verificar",
       "name": "1-VerificarSessao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -21,69 +21,13 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{ $json.temSessao }}",
-              "value2": true
-            }
-          ]
-        }
+        "jsCode": "const input = $input.first().json;\nconst temSessao = input.temSessao;\nconst cookies = JSON.stringify(input.cookies || []);\nconst ls = JSON.stringify(input.localStorage || {});\nconst urlSalva = input.urlSalva || 'https://app.cotadorsimplificado.com.br';\n\n// Se tem sessao, usa ela; senao, faz login\nlet code;\n\nif (temSessao) {\n  // USA SESSAO SALVA - codigo mais curto\n  code = `export default async function ({ page }) {\n  const log = ['Usando sessao salva...'];\n  const wait = (ms) => new Promise(r => setTimeout(r, ms));\n  const cookies = ${cookies};\n  const ls = ${ls};\n\n  try {\n    await page.setViewport({ width: 1280, height: 800 });\n    await page.goto('${urlSalva}', { waitUntil: 'domcontentloaded', timeout: 30000 });\n    if (cookies.length > 0) await page.setCookie(...cookies);\n    await page.evaluate((ls) => {\n      for (const [k, v] of Object.entries(ls)) window.localStorage.setItem(k, v);\n    }, ls);\n    await page.reload({ waitUntil: 'networkidle2' });\n    await wait(2000);\n    \n    if (await page.$('#email_principal')) {\n      return { success: false, error: 'Sessao expirada', log, sessaoExpirada: true };\n    }\n    log.push('Sessao OK');\n    \n    await page.evaluate(() => {\n      const pme = [...document.querySelectorAll('.clickable-element')].find(e => e.textContent.includes('PME') && e.textContent.includes('29'));\n      if (pme) pme.click();\n    });\n    await wait(2000);\n    log.push('PME OK');\n    \n    await page.waitForSelector('#id-nomelead', { timeout: 8000 });\n    await page.type('#id-nomelead', 'teste', { delay: 20 });\n    log.push('Nome OK');\n    \n    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Avan')); if(b) b.click(); });\n    await wait(2000);\n    log.push('Avancar 1 OK');\n    \n    await page.waitForSelector('#cidade_nome', { timeout: 8000 });\n    await page.type('#cidade_nome', 'recife', { delay: 20 });\n    await wait(1000);\n    await page.keyboard.press('ArrowDown');\n    await wait(200);\n    await page.keyboard.press('Enter');\n    await wait(1000);\n    log.push('Cidade OK');\n    \n    await page.evaluate(() => {\n      const s = document.querySelector('select');\n      if (s) { const o = [...s.options].find(x => x.textContent.includes('MEI')); if(o) { s.value = o.value; s.dispatchEvent(new Event('change', {bubbles:true})); } }\n    });\n    await wait(500);\n    log.push('Empresa OK');\n    \n    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Avan')); if(b) b.click(); });\n    await wait(2000);\n    log.push('Avancar 2 OK');\n    \n    const base = '#index > div > div > div > div.bubble-element.Group.cnaTaBaK.bubble-r-container.flex.column > div.bubble-element.Group.coaJet.bubble-r-container.flex.column > div.bubble-element.Group.cnaTaAaH.bubble-r-container.flex.row > div.bubble-element.CustomElement.cocyh.bubble-r-container.flex.column > div.bubble-element.RepeatingGroup.cocyn.bubble-rg > div.bubble-element.group-item.bubble-r-container.flex.column.entry-';\n    let n = 0;\n    for (let i = 1; i <= 10; i++) {\n      try {\n        const sel = base + i + ' > input';\n        await page.waitForSelector(sel, { timeout: 1500 });\n        await page.type(sel, '1');\n        n++;\n      } catch(e) {}\n    }\n    log.push('Faixas: ' + n);\n    \n    return { success: true, log, url: page.url() };\n  } catch (e) {\n    return { success: false, error: e.message, log };\n  }\n}`;\n} else {\n  // FAZ LOGIN - codigo completo\n  code = `export default async function ({ page }) {\n  const EMAIL = 'jessicamendesbarbosa5@gmail.com';\n  const SENHA = 'amovoced28';\n  const log = ['Fazendo login...'];\n  const wait = (ms) => new Promise(r => setTimeout(r, ms));\n\n  try {\n    await page.setViewport({ width: 1280, height: 800 });\n    await page.goto('https://app.cotadorsimplificado.com.br/login', { waitUntil: 'networkidle2', timeout: 60000 });\n    await wait(2000);\n    \n    const emailInput = await page.$('#email_principal');\n    if (emailInput) { await emailInput.click(); await emailInput.type(EMAIL, { delay: 30 }); }\n    await wait(1000);\n    \n    let btns = await page.$$('button');\n    for (const b of btns) { const t = await page.evaluate(el => el.textContent, b); if (t && t.includes('Continuar com Email')) { await b.click(); break; } }\n    await wait(2000);\n    \n    await page.waitForSelector('#pwdInput', { timeout: 15000 });\n    const senhaInput = await page.$('#pwdInput');\n    if (senhaInput) { await senhaInput.click(); await senhaInput.type(SENHA, { delay: 30 }); }\n    await wait(1000);\n    \n    btns = await page.$$('button');\n    for (const b of btns) { const t = await page.evaluate(el => el.textContent.trim(), b); if (t === 'Entrar') { await b.click(); break; } }\n    await wait(6000);\n    log.push('Login OK');\n    \n    await page.evaluate(() => {\n      const img = document.querySelector('img[src*=\"hapvida\"]');\n      if (img) { const p = img.closest('.clickable-element') || img.parentElement.parentElement; if (p) p.click(); }\n    });\n    await wait(3000);\n    log.push('Hapvida OK');\n    \n    const cookies = await page.cookies();\n    const localStorage = await page.evaluate(() => {\n      const items = {};\n      for (let i = 0; i < window.localStorage.length; i++) {\n        const k = window.localStorage.key(i);\n        items[k] = window.localStorage.getItem(k);\n      }\n      return items;\n    });\n    \n    await page.evaluate(() => {\n      const pme = [...document.querySelectorAll('.clickable-element')].find(e => e.textContent.includes('PME') && e.textContent.includes('29'));\n      if (pme) pme.click();\n    });\n    await wait(2000);\n    log.push('PME OK');\n    \n    await page.waitForSelector('#id-nomelead', { timeout: 8000 });\n    await page.type('#id-nomelead', 'teste', { delay: 20 });\n    log.push('Nome OK');\n    \n    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Avan')); if(b) b.click(); });\n    await wait(2000);\n    log.push('Avancar 1 OK');\n    \n    await page.waitForSelector('#cidade_nome', { timeout: 8000 });\n    await page.type('#cidade_nome', 'recife', { delay: 20 });\n    await wait(1000);\n    await page.keyboard.press('ArrowDown');\n    await wait(200);\n    await page.keyboard.press('Enter');\n    await wait(1000);\n    log.push('Cidade OK');\n    \n    await page.evaluate(() => {\n      const s = document.querySelector('select');\n      if (s) { const o = [...s.options].find(x => x.textContent.includes('MEI')); if(o) { s.value = o.value; s.dispatchEvent(new Event('change', {bubbles:true})); } }\n    });\n    await wait(500);\n    log.push('Empresa OK');\n    \n    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Avan')); if(b) b.click(); });\n    await wait(2000);\n    log.push('Avancar 2 OK');\n    \n    const base = '#index > div > div > div > div.bubble-element.Group.cnaTaBaK.bubble-r-container.flex.column > div.bubble-element.Group.coaJet.bubble-r-container.flex.column > div.bubble-element.Group.cnaTaAaH.bubble-r-container.flex.row > div.bubble-element.CustomElement.cocyh.bubble-r-container.flex.column > div.bubble-element.RepeatingGroup.cocyn.bubble-rg > div.bubble-element.group-item.bubble-r-container.flex.column.entry-';\n    let n = 0;\n    for (let i = 1; i <= 10; i++) {\n      try {\n        const sel = base + i + ' > input';\n        await page.waitForSelector(sel, { timeout: 1500 });\n        await page.type(sel, '1');\n        n++;\n      } catch(e) {}\n    }\n    log.push('Faixas: ' + n);\n    \n    return { success: true, log, url: page.url(), cookies, localStorage, fezLogin: true };\n  } catch (e) {\n    return { success: false, error: e.message, log };\n  }\n}`;\n}\n\nreturn [{ json: { code, temSessao } }];"
       },
-      "id": "if-sessao",
-      "name": "2-TemSessao?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
+      "id": "montar-codigo",
+      "name": "2-MontarCodigo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [600, 300]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://evolution-docker.32vkgz.easypanel.host/function",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [{"name": "Content-Type", "value": "application/json"}]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "{\n  \"code\": \"export default async function ({ page }) {\\n  const EMAIL = 'jessicamendesbarbosa5@gmail.com';\\n  const SENHA = 'amovoced28';\\n  const log = [];\\n  const wait = (ms) => new Promise(r => setTimeout(r, ms));\\n\\n  try {\\n    await page.setViewport({ width: 1280, height: 800 });\\n    log.push('Fazendo login...');\\n    await page.goto('https://app.cotadorsimplificado.com.br/login', { waitUntil: 'networkidle2', timeout: 60000 });\\n    await wait(2000);\\n    \\n    const emailInput = await page.$('#email_principal');\\n    if (emailInput) {\\n      await emailInput.click();\\n      await emailInput.type(EMAIL, { delay: 30 });\\n    }\\n    await wait(1000);\\n    \\n    let buttons = await page.$$('button');\\n    for (const btn of buttons) {\\n      const text = await page.evaluate(el => el.textContent, btn);\\n      if (text && text.includes('Continuar com Email')) {\\n        await btn.click();\\n        break;\\n      }\\n    }\\n    await wait(2000);\\n    \\n    await page.waitForSelector('#pwdInput', { timeout: 15000 });\\n    const senhaInput = await page.$('#pwdInput');\\n    if (senhaInput) {\\n      await senhaInput.click();\\n      await senhaInput.type(SENHA, { delay: 30 });\\n    }\\n    await wait(1000);\\n    \\n    buttons = await page.$$('button');\\n    for (const btn of buttons) {\\n      const text = await page.evaluate(el => el.textContent.trim(), btn);\\n      if (text === 'Entrar') {\\n        await btn.click();\\n        break;\\n      }\\n    }\\n    await wait(6000);\\n    log.push('Login OK');\\n    \\n    log.push('Clicando Hapvida...');\\n    await page.evaluate(() => {\\n      const img = document.querySelector('img[src*=\\\\\\\"hapvida\\\\\\\"]');\\n      if (img) {\\n        const parent = img.closest('.clickable-element') || img.parentElement.parentElement;\\n        if (parent) parent.click();\\n      }\\n    });\\n    await wait(3000);\\n    log.push('Hapvida OK');\\n    \\n    const cookies = await page.cookies();\\n    const localStorage = await page.evaluate(() => {\\n      const items = {};\\n      for (let i = 0; i < window.localStorage.length; i++) {\\n        const key = window.localStorage.key(i);\\n        items[key] = window.localStorage.getItem(key);\\n      }\\n      return items;\\n    });\\n    \\n    return { success: true, log, url: page.url(), cookies, localStorage, fezLogin: true };\\n  } catch (error) {\\n    return { success: false, error: error.message, log, fezLogin: true };\\n  }\\n}\"\n}",
-        "options": {"timeout": 120000}
-      },
-      "id": "fazer-login",
-      "name": "3-FazerLogin",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [800, 400]
-    },
-    {
-      "parameters": {
-        "jsCode": "// SALVA SESSAO IMEDIATAMENTE APOS LOGIN\nconst staticData = $getWorkflowStaticData('global');\nconst input = $input.first().json;\n\nif (input.success && input.cookies && input.cookies.length > 0) {\n  staticData.cookies = input.cookies;\n  staticData.localStorage = input.localStorage;\n  staticData.ultimoLogin = new Date().toISOString();\n}\n\nreturn [{ json: input }];"
-      },
-      "id": "salvar-sessao-login",
-      "name": "3B-SalvarSessaoLogin",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1000, 400]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Pega sessao salva (quando nao precisa fazer login)\nconst input = $input.first().json;\nreturn [{\n  json: {\n    success: true,\n    log: ['Usando sessao salva...'],\n    url: 'https://app.cotadorsimplificado.com.br',\n    cookies: input.cookies,\n    localStorage: input.localStorage,\n    fezLogin: false\n  }\n}];"
-      },
-      "id": "usar-sessao",
-      "name": "3-UsarSessao",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [800, 200]
-    },
-    {
-      "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst cookies = JSON.stringify(input.cookies || []);\nconst localStorage = JSON.stringify(input.localStorage || {});\nconst lastUrl = input.url || 'https://app.cotadorsimplificado.com.br';\nconst fezLogin = input.fezLogin;\nconst logAnterior = input.log || [];\n\nconst code = `export default async function ({ page }) {\n  const log = ${JSON.stringify(logAnterior)};\n  const wait = (ms) => new Promise(r => setTimeout(r, ms));\n  const cookies = ${cookies};\n  const ls = ${localStorage};\n  const fezLogin = ${fezLogin};\n\n  try {\n    await page.setViewport({ width: 1280, height: 800 });\n    log.push('Restaurando sessao...');\n    await page.goto('${lastUrl}', { waitUntil: 'domcontentloaded', timeout: 30000 });\n    if (cookies.length > 0) await page.setCookie(...cookies);\n    await page.evaluate((ls) => {\n      for (const [key, value] of Object.entries(ls)) {\n        window.localStorage.setItem(key, value);\n      }\n    }, ls);\n    await page.reload({ waitUntil: 'networkidle2' });\n    await wait(2000);\n    \n    const loginBtn = await page.$('#email_principal');\n    if (loginBtn && !fezLogin) {\n      log.push('ERRO: Sessao expirada!');\n      return { success: false, error: 'Sessao expirada', log, sessaoExpirada: true };\n    }\n    log.push('Sessao OK');\n    \n    log.push('Clicando PME...');\n    await page.evaluate(() => {\n      const pme = [...document.querySelectorAll('.clickable-element')].find(e => e.textContent.includes('PME') && e.textContent.includes('29'));\n      if (pme) pme.click();\n    });\n    await wait(2000);\n    log.push('PME OK');\n    \n    log.push('Preenchendo nome...');\n    await page.waitForSelector('#id-nomelead', { timeout: 10000 });\n    await page.click('#id-nomelead');\n    await page.type('#id-nomelead', 'teste', { delay: 30 });\n    log.push('Nome OK');\n    \n    log.push('Avancando 1...');\n    await page.evaluate(() => {\n      const btn = [...document.querySelectorAll('button')].find(b => b.textContent.includes('Avan'));\n      if (btn) btn.click();\n    });\n    await wait(2000);\n    log.push('Avancar 1 OK');\n    \n    log.push('Preenchendo cidade...');\n    await page.waitForSelector('#cidade_nome', { timeout: 10000 });\n    await page.click('#cidade_nome');\n    await page.type('#cidade_nome', 'recife', { delay: 30 });\n    await wait(1500);\n    await page.keyboard.press('ArrowDown');\n    await wait(300);\n    await page.keyboard.press('Enter');\n    await wait(1500);\n    log.push('Cidade OK');\n    \n    log.push('Selecionando empresa...');\n    await page.evaluate(() => {\n      const sel = document.querySelector('select');\n      if (sel) {\n        const opt = [...sel.options].find(o => o.textContent.includes('MEI'));\n        if (opt) {\n          sel.value = opt.value;\n          sel.dispatchEvent(new Event('change', { bubbles: true }));\n        }\n      }\n    });\n    await wait(1000);\n    log.push('Empresa OK');\n    \n    log.push('Avancando 2...');\n    await page.evaluate(() => {\n      const btn = [...document.querySelectorAll('button')].find(b => b.textContent.includes('Avan'));\n      if (btn) btn.click();\n    });\n    await wait(2000);\n    log.push('Avancar 2 OK');\n    \n    log.push('Preenchendo faixas...');\n    const baseSelector = '#index > div > div > div > div.bubble-element.Group.cnaTaBaK.bubble-r-container.flex.column > div.bubble-element.Group.coaJet.bubble-r-container.flex.column > div.bubble-element.Group.cnaTaAaH.bubble-r-container.flex.row > div.bubble-element.CustomElement.cocyh.bubble-r-container.flex.column > div.bubble-element.RepeatingGroup.cocyn.bubble-rg > div.bubble-element.group-item.bubble-r-container.flex.column.entry-';\n    let preenchidas = 0;\n    for (let i = 1; i <= 10; i++) {\n      try {\n        const sel = baseSelector + i + ' > input';\n        await page.waitForSelector(sel, { timeout: 2000 });\n        await page.click(sel);\n        await page.type(sel, '1');\n        preenchidas++;\n      } catch(e) {}\n    }\n    log.push('Faixas: ' + preenchidas);\n    \n    return { success: true, log, url: page.url() };\n  } catch (error) {\n    return { success: false, error: error.message, log };\n  }\n}`;\n\nreturn [{ json: { code } }];"
-      },
-      "id": "montar-formulario",
-      "name": "4-MontarFormulario",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1200, 300]
     },
     {
       "parameters": {
@@ -98,31 +42,21 @@
         "jsonBody": "={{ { code: $json.code } }}",
         "options": {"timeout": 180000}
       },
-      "id": "preencher-formulario",
-      "name": "5-PreencherFormulario",
+      "id": "executar",
+      "name": "3-Executar",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1400, 300]
+      "position": [800, 300]
     },
     {
       "parameters": {
-        "jsCode": "// Limpa sessao se expirada\nconst staticData = $getWorkflowStaticData('global');\nconst input = $input.first().json;\n\nif (input.sessaoExpirada) {\n  staticData.cookies = [];\n  staticData.localStorage = {};\n  staticData.ultimoLogin = null;\n}\n\nreturn [{ json: input }];"
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst input = $input.first().json;\n\n// Salva sessao se fez login\nif (input.fezLogin && input.success && input.cookies) {\n  staticData.cookies = input.cookies;\n  staticData.localStorage = input.localStorage;\n  staticData.ultimoLogin = new Date().toISOString();\n  staticData.url = input.url;\n}\n\n// Limpa se expirou\nif (input.sessaoExpirada) {\n  staticData.cookies = [];\n  staticData.localStorage = {};\n  staticData.ultimoLogin = null;\n}\n\nconst log = (input.log || []).join('\\n');\nconst texto = `*COTADOR HAPVIDA*\\n\\nStatus: ${input.success ? 'SUCESSO' : 'ERRO'}\\nErro: ${input.error || 'Nenhum'}\\n\\nLog:\\n${log}\\n\\nURL: ${input.url || ''}`;\n\nreturn [{ json: { number: '5583999471031', text: texto } }];"
       },
-      "id": "verificar-expiracao",
-      "name": "6-VerificarExpiracao",
+      "id": "processar",
+      "name": "4-Processar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1600, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst success = input.success;\nconst error = input.error || 'Nenhum';\nconst log = (input.log || []).join('\\n');\nconst url = input.url || '';\n\nconst texto = `*COTADOR HAPVIDA*\\n\\nStatus: ${success ? 'SUCESSO' : 'ERRO'}\\nErro: ${error}\\n\\n*Log:*\\n${log}\\n\\nURL: ${url}`;\n\nreturn [{ json: { number: '5583999471031', text: texto } }];"
-      },
-      "id": "montar-msg",
-      "name": "7-MontarMsg",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1800, 300]
+      "position": [1000, 300]
     },
     {
       "parameters": {
@@ -141,10 +75,10 @@
         "options": {}
       },
       "id": "whatsapp",
-      "name": "8-WhatsApp",
+      "name": "5-WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2000, 300]
+      "position": [1200, 300]
     }
   ],
   "connections": {
@@ -152,39 +86,21 @@
       "main": [[{"node": "1-VerificarSessao", "type": "main", "index": 0}]]
     },
     "1-VerificarSessao": {
-      "main": [[{"node": "2-TemSessao?", "type": "main", "index": 0}]]
+      "main": [[{"node": "2-MontarCodigo", "type": "main", "index": 0}]]
     },
-    "2-TemSessao?": {
-      "main": [
-        [{"node": "3-UsarSessao", "type": "main", "index": 0}],
-        [{"node": "3-FazerLogin", "type": "main", "index": 0}]
-      ]
+    "2-MontarCodigo": {
+      "main": [[{"node": "3-Executar", "type": "main", "index": 0}]]
     },
-    "3-FazerLogin": {
-      "main": [[{"node": "3B-SalvarSessaoLogin", "type": "main", "index": 0}]]
+    "3-Executar": {
+      "main": [[{"node": "4-Processar", "type": "main", "index": 0}]]
     },
-    "3B-SalvarSessaoLogin": {
-      "main": [[{"node": "4-MontarFormulario", "type": "main", "index": 0}]]
-    },
-    "3-UsarSessao": {
-      "main": [[{"node": "4-MontarFormulario", "type": "main", "index": 0}]]
-    },
-    "4-MontarFormulario": {
-      "main": [[{"node": "5-PreencherFormulario", "type": "main", "index": 0}]]
-    },
-    "5-PreencherFormulario": {
-      "main": [[{"node": "6-VerificarExpiracao", "type": "main", "index": 0}]]
-    },
-    "6-VerificarExpiracao": {
-      "main": [[{"node": "7-MontarMsg", "type": "main", "index": 0}]]
-    },
-    "7-MontarMsg": {
-      "main": [[{"node": "8-WhatsApp", "type": "main", "index": 0}]]
+    "4-Processar": {
+      "main": [[{"node": "5-WhatsApp", "type": "main", "index": 0}]]
     }
   },
   "active": false,
   "settings": {"executionOrder": "v1"},
-  "versionId": "2",
+  "versionId": "3",
   "meta": {"templateCredsSetupCompleted": true, "instanceId": "local"},
   "tags": []
 }
