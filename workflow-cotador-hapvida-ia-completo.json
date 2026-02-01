@@ -123,6 +123,16 @@
     },
     {
       "parameters": {
+        "jsCode": "const captura = $input.first().json;\nconst loopData = $('Preparar Captura').first().json;\n\nconst systemPrompt = `Voce e um agente que navega pelo site Cotador Simplificado para fazer cotacao Hapvida.\n\nSEQUENCIA DE PASSOS A SEGUIR:\n1. Clicar em 'PME ate 29 vidas'\n2. Preencher nome 'teste' no campo de nome, depois clicar 'Avancar'\n3. Preencher cidade 'recife' e tipo empresa 'Mei - empresario individual', depois clicar 'Avancar'\n4. Digitar '1' em TODAS as faixas etarias que aparecerem, depois clicar 'Avancar'\n5. Clicar em 'Add produtos'\n6. No modal, clicar em 'escolher operadora Hapvida'\n7. No proximo modal, clicar na opcao que mostra a cidade + '2 a 29'\n8. Clicar em 'escolher planos', depois em 'ambulatorial'\n9. Clicar em 'sem acomodacao / com coparticipacao'\n10. Quando chegar aqui, retornar acao='concluido'\n\nVoce recebe: screenshot + lista de elementos (i=index, text=texto, x,y=posicao, type=tipo)\n\nResponda APENAS com JSON valido:\n{\n  \"acao\": \"clicar\" | \"digitar\" | \"concluido\",\n  \"index\": numero_do_elemento,\n  \"valor\": \"texto para digitar se acao=digitar\",\n  \"etapa\": numero_da_etapa_atual,\n  \"motivo\": \"explicacao curta do que esta fazendo\"\n}\n\nDICAS:\n- Para campos de texto, primeiro clique no campo (acao=clicar), depois digite (acao=digitar)\n- Se nao encontrar um elemento, tente scroll ou procure por texto similar\n- Faixas etarias sao varios campos, preencha um de cada vez\n- Se estiver em duvida, analise o screenshot cuidadosamente`;\n\nconst userText = `Iteracao: ${loopData.iteracao}\\nURL: ${captura.url}\\n\\nElementos clicaveis:\\n${JSON.stringify(captura.elementos)}\\n\\nAnalise o screenshot e me diga qual o proximo passo.`;\n\nconst requestBody = {\n  model: 'anthropic/claude-3.5-sonnet',\n  messages: [\n    { role: 'system', content: systemPrompt },\n    {\n      role: 'user',\n      content: [\n        { type: 'text', text: userText },\n        { type: 'image_url', image_url: { url: `data:image/png;base64,${captura.screenshot}` } }\n      ]\n    }\n  ],\n  max_tokens: 400\n};\n\nreturn [{ json: { requestBody, captura, loopData } }];"
+      },
+      "id": "preparar-ia",
+      "name": "Preparar IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 200]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://openrouter.ai/api/v1/chat/completions",
         "sendHeaders": true,
@@ -140,7 +150,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"anthropic/claude-3.5-sonnet\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Voce e um agente que navega pelo site Cotador Simplificado para fazer cotacao Hapvida.\\n\\nSEQUENCIA DE PASSOS A SEGUIR:\\n1. Clicar em 'PME ate 29 vidas'\\n2. Preencher nome 'teste' no campo de nome, depois clicar 'Avancar'\\n3. Preencher cidade 'recife' e tipo empresa 'Mei - empresario individual', depois clicar 'Avancar'\\n4. Digitar '1' em TODAS as faixas etarias que aparecerem, depois clicar 'Avancar'\\n5. Clicar em 'Add produtos'\\n6. No modal, clicar em 'escolher operadora Hapvida'\\n7. No proximo modal, clicar na opcao que mostra a cidade + '2 a 29'\\n8. Clicar em 'escolher planos', depois em 'ambulatorial'\\n9. Clicar em 'sem acomodacao / com coparticipacao'\\n10. Quando chegar aqui, retornar acao='concluido'\\n\\nVoce recebe: screenshot + lista de elementos (i=index, text=texto, x,y=posicao, type=tipo)\\n\\nResponda APENAS com JSON valido:\\n{\\n  \\\"acao\\\": \\\"clicar\\\" | \\\"digitar\\\" | \\\"concluido\\\",\\n  \\\"index\\\": numero_do_elemento,\\n  \\\"valor\\\": \\\"texto para digitar se acao=digitar\\\",\\n  \\\"etapa\\\": numero_da_etapa_atual,\\n  \\\"motivo\\\": \\\"explicacao curta do que esta fazendo\\\"\\n}\\n\\nDICAS:\\n- Para campos de texto, primeiro clique no campo (acao=clicar), depois digite (acao=digitar)\\n- Se nao encontrar um elemento, tente scroll ou procure por texto similar\\n- Faixas etarias sao varios campos, preencha um de cada vez\\n- Se estiver em duvida, analise o screenshot cuidadosamente\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"Iteracao: {{ $('Preparar Captura').first().json.iteracao }}\\nURL: {{ $('2. Captura Tela').first().json.url }}\\n\\nElementos clicaveis:\\n{{ JSON.stringify($('2. Captura Tela').first().json.elementos) }}\\n\\nAnalise o screenshot e me diga qual o proximo passo.\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": {\n            \"url\": \"data:image/png;base64,{{ $('2. Captura Tela').first().json.screenshot }}\"\n          }\n        }\n      ]\n    }\n  ],\n  \"max_tokens\": 400\n}",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
         "options": {
           "timeout": 90000
         }
@@ -149,11 +159,11 @@
       "name": "3. IA Decide",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1300, 200]
+      "position": [1500, 200]
     },
     {
       "parameters": {
-        "jsCode": "const captura = $('2. Captura Tela').first().json;\nconst iaResponse = $input.first().json;\nconst loopData = $('Preparar Captura').first().json;\n\nlet iaDecisao;\ntry {\n  let content = iaResponse.choices[0].message.content;\n  // Limpar markdown\n  if (content.includes('```')) {\n    content = content.replace(/```json?\\n?/g, '').replace(/```/g, '');\n  }\n  iaDecisao = JSON.parse(content.trim());\n} catch (e) {\n  iaDecisao = { acao: 'erro', motivo: 'Falha parse: ' + (iaResponse.choices?.[0]?.message?.content || 'sem resposta') };\n}\n\n// Adicionar ao historico\nconst historico = loopData.historico || [];\nhistorico.push({\n  iteracao: loopData.iteracao,\n  acao: iaDecisao.acao,\n  index: iaDecisao.index,\n  etapa: iaDecisao.etapa,\n  motivo: iaDecisao.motivo\n});\n\nreturn [{\n  json: {\n    ...iaDecisao,\n    url: captura.url,\n    cookies: captura.cookies,\n    elementos: captura.elementos,\n    iteracao: loopData.iteracao,\n    historico: historico\n  }\n}];"
+        "jsCode": "const prepIA = $('Preparar IA').first().json;\nconst captura = prepIA.captura;\nconst loopData = prepIA.loopData;\nconst iaResponse = $input.first().json;\n\nlet iaDecisao;\ntry {\n  let content = iaResponse.choices[0].message.content;\n  // Limpar markdown\n  if (content.includes('```')) {\n    content = content.replace(/```json?\\n?/g, '').replace(/```/g, '');\n  }\n  iaDecisao = JSON.parse(content.trim());\n} catch (e) {\n  iaDecisao = { acao: 'erro', motivo: 'Falha parse: ' + (iaResponse.choices?.[0]?.message?.content || 'sem resposta') };\n}\n\n// Adicionar ao historico\nconst historico = loopData.historico || [];\nhistorico.push({\n  iteracao: loopData.iteracao,\n  acao: iaDecisao.acao,\n  index: iaDecisao.index,\n  etapa: iaDecisao.etapa,\n  motivo: iaDecisao.motivo\n});\n\nreturn [{\n  json: {\n    ...iaDecisao,\n    url: captura.url,\n    cookies: captura.cookies,\n    elementos: captura.elementos,\n    iteracao: loopData.iteracao,\n    historico: historico\n  }\n}];"
       },
       "id": "parse-ia",
       "name": "4. Parse IA",
@@ -551,6 +561,17 @@
       ]
     },
     "2. Captura Tela": {
+      "main": [
+        [
+          {
+            "node": "Preparar IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar IA": {
       "main": [
         [
           {
