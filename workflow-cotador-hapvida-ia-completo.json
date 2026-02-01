@@ -87,6 +87,16 @@
     },
     {
       "parameters": {
+        "jsCode": "const session = $input.first().json.session;\nconst cookies = session.cookies || [];\nconst targetUrl = session.url || '';\n\nconst code = `export default async function ({ page }) {\n  const cookies = ${JSON.stringify(cookies)};\n  const targetUrl = '${targetUrl.replace(/'/g, \"\\\\'\")}'; \n  \n  await page.setViewport({ width: 1280, height: 900 });\n  \n  if (cookies && cookies.length > 0) {\n    await page.setCookie(...cookies);\n  }\n  \n  await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 30000 });\n  await new Promise(r => setTimeout(r, 2000));\n  \n  const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });\n  \n  const clickables = await page.$$eval('a, button, input, select, [onclick], [role=\"button\"], div[class*=\"click\"], span[class*=\"button\"]', els => els.map((el, index) => {\n    const rect = el.getBoundingClientRect();\n    const style = window.getComputedStyle(el);\n    return {\n      i: index,\n      tag: el.tagName,\n      text: (el.textContent || '').trim().substring(0, 80),\n      type: el.type || null,\n      placeholder: el.placeholder || null,\n      x: Math.round(rect.x + rect.width/2),\n      y: Math.round(rect.y + rect.height/2),\n      vis: rect.width > 0 && rect.height > 0 && rect.y >= 0 && rect.y < 900 && style.visibility !== 'hidden' && style.display !== 'none'\n    };\n  }).filter(el => el.vis));\n  \n  return {\n    url: page.url(),\n    screenshot: screenshot,\n    elementos: clickables.slice(0, 50),\n    cookies: await page.cookies()\n  };\n}`;\n\nreturn [{ json: { code: code, iteracao: $input.first().json.iteracao, historico: $input.first().json.historico } }];"
+      },
+      "id": "preparar-captura",
+      "name": "Preparar Captura",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [950, 200]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://evolution-docker.32vkgz.easypanel.host/function",
         "sendHeaders": true,
@@ -100,7 +110,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"code\": \"export default async function ({ page }) {\\n  const cookies = {{ JSON.stringify($json.session.cookies) }};\\n  const targetUrl = '{{ $json.session.url }}';\\n  \\n  await page.setViewport({ width: 1280, height: 900 });\\n  \\n  if (cookies && cookies.length > 0) {\\n    await page.setCookie(...cookies);\\n  }\\n  \\n  await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 30000 });\\n  await new Promise(r => setTimeout(r, 2000));\\n  \\n  const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });\\n  \\n  const clickables = await page.$$eval('a, button, input, select, [onclick], [role=\\\"button\\\"], div[class*=\\\"click\\\"], span[class*=\\\"button\\\"]', els => els.map((el, index) => {\\n    const rect = el.getBoundingClientRect();\\n    const style = window.getComputedStyle(el);\\n    return {\\n      i: index,\\n      tag: el.tagName,\\n      text: (el.textContent || '').trim().substring(0, 80),\\n      type: el.type || null,\\n      placeholder: el.placeholder || null,\\n      value: el.value || null,\\n      x: Math.round(rect.x + rect.width/2),\\n      y: Math.round(rect.y + rect.height/2),\\n      w: Math.round(rect.width),\\n      h: Math.round(rect.height),\\n      vis: rect.width > 0 && rect.height > 0 && rect.y >= 0 && rect.y < 900 && style.visibility !== 'hidden' && style.display !== 'none'\\n    };\\n  }).filter(el => el.vis));\\n  \\n  return {\\n    url: page.url(),\\n    screenshot: screenshot,\\n    elementos: clickables.slice(0, 50),\\n    cookies: await page.cookies()\\n  };\\n}\"\n}",
+        "jsonBody": "={ \"code\": {{ JSON.stringify($json.code) }} }",
         "options": {
           "timeout": 60000
         }
@@ -109,7 +119,7 @@
       "name": "2. Captura Tela",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1050, 200]
+      "position": [1150, 200]
     },
     {
       "parameters": {
@@ -130,7 +140,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"anthropic/claude-3.5-sonnet\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Voce e um agente que navega pelo site Cotador Simplificado para fazer cotacao Hapvida.\\n\\nSEQUENCIA DE PASSOS A SEGUIR:\\n1. Clicar em 'PME ate 29 vidas'\\n2. Preencher nome 'teste' no campo de nome, depois clicar 'Avancar'\\n3. Preencher cidade 'recife' e tipo empresa 'Mei - empresario individual', depois clicar 'Avancar'\\n4. Digitar '1' em TODAS as faixas etarias que aparecerem, depois clicar 'Avancar'\\n5. Clicar em 'Add produtos'\\n6. No modal, clicar em 'escolher operadora Hapvida'\\n7. No proximo modal, clicar na opcao que mostra a cidade + '2 a 29'\\n8. Clicar em 'escolher planos', depois em 'ambulatorial'\\n9. Clicar em 'sem acomodacao / com coparticipacao'\\n10. Quando chegar aqui, retornar acao='concluido'\\n\\nVoce recebe: screenshot + lista de elementos (i=index, text=texto, x,y=posicao, type=tipo)\\n\\nResponda APENAS com JSON valido:\\n{\\n  \\\"acao\\\": \\\"clicar\\\" | \\\"digitar\\\" | \\\"concluido\\\",\\n  \\\"index\\\": numero_do_elemento,\\n  \\\"valor\\\": \\\"texto para digitar se acao=digitar\\\",\\n  \\\"etapa\\\": numero_da_etapa_atual,\\n  \\\"motivo\\\": \\\"explicacao curta do que esta fazendo\\\"\\n}\\n\\nDICAS:\\n- Para campos de texto, primeiro clique no campo (acao=clicar), depois digite (acao=digitar)\\n- Se nao encontrar um elemento, tente scroll ou procure por texto similar\\n- Faixas etarias sao varios campos, preencha um de cada vez\\n- Se estiver em duvida, analise o screenshot cuidadosamente\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"Iteracao: {{ $json.iteracao }}\\nURL: {{ $('2. Captura Tela').first().json.url }}\\n\\nElementos clicaveis:\\n{{ JSON.stringify($('2. Captura Tela').first().json.elementos) }}\\n\\nAnalise o screenshot e me diga qual o proximo passo.\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": {\n            \"url\": \"data:image/png;base64,{{ $('2. Captura Tela').first().json.screenshot }}\"\n          }\n        }\n      ]\n    }\n  ],\n  \"max_tokens\": 400\n}",
+        "jsonBody": "={\n  \"model\": \"anthropic/claude-3.5-sonnet\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Voce e um agente que navega pelo site Cotador Simplificado para fazer cotacao Hapvida.\\n\\nSEQUENCIA DE PASSOS A SEGUIR:\\n1. Clicar em 'PME ate 29 vidas'\\n2. Preencher nome 'teste' no campo de nome, depois clicar 'Avancar'\\n3. Preencher cidade 'recife' e tipo empresa 'Mei - empresario individual', depois clicar 'Avancar'\\n4. Digitar '1' em TODAS as faixas etarias que aparecerem, depois clicar 'Avancar'\\n5. Clicar em 'Add produtos'\\n6. No modal, clicar em 'escolher operadora Hapvida'\\n7. No proximo modal, clicar na opcao que mostra a cidade + '2 a 29'\\n8. Clicar em 'escolher planos', depois em 'ambulatorial'\\n9. Clicar em 'sem acomodacao / com coparticipacao'\\n10. Quando chegar aqui, retornar acao='concluido'\\n\\nVoce recebe: screenshot + lista de elementos (i=index, text=texto, x,y=posicao, type=tipo)\\n\\nResponda APENAS com JSON valido:\\n{\\n  \\\"acao\\\": \\\"clicar\\\" | \\\"digitar\\\" | \\\"concluido\\\",\\n  \\\"index\\\": numero_do_elemento,\\n  \\\"valor\\\": \\\"texto para digitar se acao=digitar\\\",\\n  \\\"etapa\\\": numero_da_etapa_atual,\\n  \\\"motivo\\\": \\\"explicacao curta do que esta fazendo\\\"\\n}\\n\\nDICAS:\\n- Para campos de texto, primeiro clique no campo (acao=clicar), depois digite (acao=digitar)\\n- Se nao encontrar um elemento, tente scroll ou procure por texto similar\\n- Faixas etarias sao varios campos, preencha um de cada vez\\n- Se estiver em duvida, analise o screenshot cuidadosamente\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"Iteracao: {{ $('Preparar Captura').first().json.iteracao }}\\nURL: {{ $('2. Captura Tela').first().json.url }}\\n\\nElementos clicaveis:\\n{{ JSON.stringify($('2. Captura Tela').first().json.elementos) }}\\n\\nAnalise o screenshot e me diga qual o proximo passo.\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": {\n            \"url\": \"data:image/png;base64,{{ $('2. Captura Tela').first().json.screenshot }}\"\n          }\n        }\n      ]\n    }\n  ],\n  \"max_tokens\": 400\n}",
         "options": {
           "timeout": 90000
         }
@@ -143,7 +153,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const captura = $('2. Captura Tela').first().json;\nconst iaResponse = $input.first().json;\nconst loopData = $('Init Loop').first().json;\n\nlet iaDecisao;\ntry {\n  let content = iaResponse.choices[0].message.content;\n  // Limpar markdown\n  if (content.includes('```')) {\n    content = content.replace(/```json?\\n?/g, '').replace(/```/g, '');\n  }\n  iaDecisao = JSON.parse(content.trim());\n} catch (e) {\n  iaDecisao = { acao: 'erro', motivo: 'Falha parse: ' + (iaResponse.choices?.[0]?.message?.content || 'sem resposta') };\n}\n\n// Adicionar ao historico\nconst historico = loopData.historico || [];\nhistorico.push({\n  iteracao: loopData.iteracao,\n  acao: iaDecisao.acao,\n  index: iaDecisao.index,\n  etapa: iaDecisao.etapa,\n  motivo: iaDecisao.motivo\n});\n\nreturn [{\n  json: {\n    ...iaDecisao,\n    url: captura.url,\n    cookies: captura.cookies,\n    elementos: captura.elementos,\n    iteracao: loopData.iteracao,\n    historico: historico\n  }\n}];"
+        "jsCode": "const captura = $('2. Captura Tela').first().json;\nconst iaResponse = $input.first().json;\nconst loopData = $('Preparar Captura').first().json;\n\nlet iaDecisao;\ntry {\n  let content = iaResponse.choices[0].message.content;\n  // Limpar markdown\n  if (content.includes('```')) {\n    content = content.replace(/```json?\\n?/g, '').replace(/```/g, '');\n  }\n  iaDecisao = JSON.parse(content.trim());\n} catch (e) {\n  iaDecisao = { acao: 'erro', motivo: 'Falha parse: ' + (iaResponse.choices?.[0]?.message?.content || 'sem resposta') };\n}\n\n// Adicionar ao historico\nconst historico = loopData.historico || [];\nhistorico.push({\n  iteracao: loopData.iteracao,\n  acao: iaDecisao.acao,\n  index: iaDecisao.index,\n  etapa: iaDecisao.etapa,\n  motivo: iaDecisao.motivo\n});\n\nreturn [{\n  json: {\n    ...iaDecisao,\n    url: captura.url,\n    cookies: captura.cookies,\n    elementos: captura.elementos,\n    iteracao: loopData.iteracao,\n    historico: historico\n  }\n}];"
       },
       "id": "parse-ia",
       "name": "4. Parse IA",
@@ -515,7 +525,7 @@
       "main": [
         [
           {
-            "node": "2. Captura Tela",
+            "node": "Preparar Captura",
             "type": "main",
             "index": 0
           }
@@ -523,6 +533,17 @@
         [
           {
             "node": "WhatsApp Loop Fim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Captura": {
+      "main": [
+        [
+          {
+            "node": "2. Captura Tela",
             "type": "main",
             "index": 0
           }
