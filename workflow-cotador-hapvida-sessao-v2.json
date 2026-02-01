@@ -1,5 +1,5 @@
 {
-  "name": "Cotador Hapvida - Sessao v9 (All Inputs)",
+  "name": "Cotador Hapvida - Sessao v10 (Seletor Correto)",
   "nodes": [
     {
       "parameters": {},
@@ -76,7 +76,7 @@
         "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { number: '5583999471031', text: '*FASE 1: ' + $json.fase + '*\\n\\nStatus: ' + ($json.success ? 'OK' : 'ERRO') + '\\nCookies salvos: ' + ($json.cookies ? $json.cookies.length : 0) + '\\nErro: ' + ($json.error || 'Nenhum') } }}",
+        "jsonBody": "={{ { number: '5583999471031', text: '*FASE 1: ' + $json.fase + '*\\n\\nStatus: ' + ($json.success ? 'OK' : 'ERRO') + '\\nCookies: ' + ($json.cookies ? $json.cookies.length : 0) + '\\n\\n(Se fase=LOGIN toda vez, o Static Data nao esta persistindo no n8n)\\n\\nErro: ' + ($json.error || 'Nenhum') } }}",
         "options": {}
       },
       "id": "whatsapp-fase1",
@@ -131,7 +131,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $('7-ExecutarFormulario').first().json;\nconst cookies = JSON.stringify(input.cookies || []);\nconst localStorage = JSON.stringify(input.localStorage || {});\nconst lastUrl = input.url || 'https://app.cotadorsimplificado.com.br';\n\nconst code = `export default async function ({ page }) {\n  const wait = (ms) => new Promise(r => setTimeout(r, ms));\n  const cookies = ${cookies};\n  const ls = ${localStorage};\n\n  try {\n    await page.setViewport({ width: 1280, height: 800 });\n    await page.goto('${lastUrl}', { waitUntil: 'domcontentloaded', timeout: 30000 });\n    if (cookies.length > 0) await page.setCookie(...cookies);\n    await page.evaluate((ls) => {\n      for (const [key, value] of Object.entries(ls)) window.localStorage.setItem(key, value);\n    }, ls);\n    await page.reload({ waitUntil: 'networkidle2' });\n    await wait(3000);\n    \n    // Debug: lista tipos de TODOS os inputs\n    const debugInfo = await page.evaluate(() => {\n      const allInputs = document.querySelectorAll('input');\n      const tipos = [];\n      for (let i = 0; i < allInputs.length; i++) {\n        tipos.push(allInputs[i].type || 'sem-tipo');\n      }\n      return {\n        total: allInputs.length,\n        tipos: tipos.join(',')\n      };\n    });\n    \n    // Preenche TODOS os inputs encontrados\n    const preenchidas = await page.evaluate(() => {\n      let count = 0;\n      const allInputs = document.querySelectorAll('input');\n      for (let i = 0; i < allInputs.length; i++) {\n        try {\n          const inp = allInputs[i];\n          // Pula inputs hidden, checkbox, radio, submit, button\n          if (['hidden','checkbox','radio','submit','button','file'].includes(inp.type)) continue;\n          inp.value = '1';\n          inp.dispatchEvent(new Event('input', { bubbles: true }));\n          inp.dispatchEvent(new Event('change', { bubbles: true }));\n          count++;\n        } catch(e) {}\n      }\n      return count;\n    });\n    \n    await wait(1000);\n    const screenshot = await page.screenshot({ encoding: 'base64' });\n    return { success: true, fase: 'FAIXAS', preenchidas, debugInfo, screenshot };\n  } catch (error) {\n    const screenshot = await page.screenshot({ encoding: 'base64' }).catch(() => null);\n    return { success: false, fase: 'FAIXAS', error: error.message, screenshot };\n  }\n}`;\n\nreturn [{ json: { code } }];"
+        "jsCode": "const input = $('7-ExecutarFormulario').first().json;\nconst cookies = JSON.stringify(input.cookies || []);\nconst localStorage = JSON.stringify(input.localStorage || {});\nconst lastUrl = input.url || 'https://app.cotadorsimplificado.com.br';\n\nconst code = `export default async function ({ page }) {\n  const wait = (ms) => new Promise(r => setTimeout(r, ms));\n  const cookies = ${cookies};\n  const ls = ${localStorage};\n\n  try {\n    await page.setViewport({ width: 1280, height: 800 });\n    await page.goto('${lastUrl}', { waitUntil: 'domcontentloaded', timeout: 30000 });\n    if (cookies.length > 0) await page.setCookie(...cookies);\n    await page.evaluate((ls) => {\n      for (const [key, value] of Object.entries(ls)) window.localStorage.setItem(key, value);\n    }, ls);\n    await page.reload({ waitUntil: 'networkidle2' });\n    await wait(3000);\n    \n    // Debug: conta inputs com seletor especifico\n    const debugInfo = await page.evaluate(() => {\n      const rgInputs = document.querySelectorAll('.RepeatingGroup.cocyn input');\n      const inputClass = document.querySelectorAll('input.Input');\n      const typeInput = document.querySelectorAll('input[type=\"input\"]');\n      return {\n        repeatingGroup: rgInputs.length,\n        inputClass: inputClass.length,\n        typeInput: typeInput.length\n      };\n    });\n    \n    // Preenche usando seletor especifico do RepeatingGroup\n    const preenchidas = await page.evaluate(() => {\n      let count = 0;\n      // Tenta seletor do RepeatingGroup\n      let inputs = document.querySelectorAll('.RepeatingGroup.cocyn input');\n      if (inputs.length === 0) {\n        // Tenta pela classe Input\n        inputs = document.querySelectorAll('input.Input');\n      }\n      if (inputs.length === 0) {\n        // Tenta pelo type=\"input\"\n        inputs = document.querySelectorAll('input[type=\"input\"]');\n      }\n      for (let i = 0; i < inputs.length; i++) {\n        try {\n          inputs[i].focus();\n          inputs[i].value = '1';\n          inputs[i].dispatchEvent(new Event('input', { bubbles: true }));\n          inputs[i].dispatchEvent(new Event('change', { bubbles: true }));\n          inputs[i].blur();\n          count++;\n        } catch(e) {}\n      }\n      return count;\n    });\n    \n    await wait(1000);\n    const screenshot = await page.screenshot({ encoding: 'base64' });\n    return { success: true, fase: 'FAIXAS', preenchidas, debugInfo, screenshot };\n  } catch (error) {\n    const screenshot = await page.screenshot({ encoding: 'base64' }).catch(() => null);\n    return { success: false, fase: 'FAIXAS', error: error.message, screenshot };\n  }\n}`;\n\nreturn [{ json: { code } }];"
       },
       "id": "montar-faixas",
       "name": "9-MontarFaixas",
@@ -164,7 +164,7 @@
         "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { number: '5583999471031', text: '*FASE 3: ' + $json.fase + '*\\n\\nStatus: ' + ($json.success ? 'OK' : 'ERRO') + '\\nFaixas preenchidas: ' + ($json.preenchidas || 0) + '\\n\\n*Debug inputs:*\\nTotal: ' + ($json.debugInfo ? $json.debugInfo.total : '?') + '\\nTipos: ' + ($json.debugInfo ? $json.debugInfo.tipos : '?') + '\\n\\nErro: ' + ($json.error || 'Nenhum') } }}",
+        "jsonBody": "={{ { number: '5583999471031', text: '*FASE 3: ' + $json.fase + '*\\n\\nStatus: ' + ($json.success ? 'OK' : 'ERRO') + '\\nFaixas preenchidas: ' + ($json.preenchidas || 0) + '\\n\\n*Debug seletores:*\\nRepeatingGroup: ' + ($json.debugInfo ? $json.debugInfo.repeatingGroup : '?') + '\\ninput.Input: ' + ($json.debugInfo ? $json.debugInfo.inputClass : '?') + '\\ntype=input: ' + ($json.debugInfo ? $json.debugInfo.typeInput : '?') + '\\n\\nErro: ' + ($json.error || 'Nenhum') } }}",
         "options": {}
       },
       "id": "whatsapp-fase3",
@@ -190,7 +190,7 @@
   },
   "active": false,
   "settings": {"executionOrder": "v1"},
-  "versionId": "9",
+  "versionId": "10",
   "meta": {"templateCredsSetupCompleted": true, "instanceId": "local"},
   "tags": []
 }
