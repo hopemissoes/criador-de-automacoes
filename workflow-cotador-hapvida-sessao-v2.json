@@ -1,5 +1,5 @@
 {
-  "name": "Cotador Hapvida - Sessao v4",
+  "name": "Cotador Hapvida - Sessao v5",
   "nodes": [
     {
       "parameters": {},
@@ -57,7 +57,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// USA SESSAO SALVA - nao precisa fazer login\nconst input = $input.first().json;\nreturn [{\n  json: {\n    success: true,\n    log: ['Usando sessao salva...'],\n    url: 'https://app.cotadorsimplificado.com.br',\n    cookies: input.cookies,\n    localStorage: input.localStorage\n  }\n}];"
+        "jsCode": "// USA SESSAO SALVA\nconst input = $input.first().json;\nreturn [{\n  json: {\n    success: true,\n    log: ['Usando sessao salva...'],\n    url: 'https://app.cotadorsimplificado.com.br',\n    cookies: input.cookies,\n    localStorage: input.localStorage\n  }\n}];"
       },
       "id": "usar-sessao",
       "name": "3B-UsarSessao",
@@ -158,7 +158,7 @@
   },
   "active": false,
   "settings": {"executionOrder": "v1"},
-  "versionId": "4",
+  "versionId": "5",
   "meta": {"templateCredsSetupCompleted": true, "instanceId": "local"},
   "tags": []
 }
