@@ -380,6 +380,101 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [2050, 550]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "data_hora": "={{ new Date().toISOString() }}",
+            "iteracoes": "={{ $('4. Parse IA').first().json.iteracao }}",
+            "etapa_final": "={{ $('4. Parse IA').first().json.etapa }}",
+            "status": "concluido",
+            "historico_acoes": "={{ JSON.stringify($('4. Parse IA').first().json.historico) }}",
+            "url_final": "={{ $('4. Parse IA').first().json.url }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "data_hora",
+              "displayName": "data_hora",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "iteracoes",
+              "displayName": "iteracoes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "etapa_final",
+              "displayName": "etapa_final",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "historico_acoes",
+              "displayName": "historico_acoes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "url_final",
+              "displayName": "url_final",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "google-sheets-salvar",
+      "name": "Salvar na Planilha",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2300, 400]
     }
   ],
   "connections": {
@@ -526,6 +621,17 @@
         [
           {
             "node": "Continuar Loop?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Concluido": {
+      "main": [
+        [
+          {
+            "node": "Salvar na Planilha",
             "type": "main",
             "index": 0
           }
