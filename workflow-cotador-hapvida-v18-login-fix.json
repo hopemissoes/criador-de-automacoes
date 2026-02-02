@@ -1,0 +1,56 @@
+{
+  "name": "Cotador Hapvida - v18 LOGIN FIX",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Executar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-docker.32vkgz.easypanel.host/function",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"code\": \"export default async function ({ page }) {\\n  const EMAIL = 'jessicamendesbarbosa5@gmail.com';\\n  const SENHA = 'amovoced28';\\n  const w = (ms) => new Promise(r => setTimeout(r, ms));\\n  let d = [];\\n  \\n  try {\\n    await page.evaluateOnNewDocument(() => {\\n      Object.defineProperty(navigator, 'webdriver', { get: () => false });\\n      window.chrome = { runtime: {} };\\n    });\\n    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');\\n    await page.setViewport({ width: 1280, height: 800 });\\n    \\n    // LOGIN - vai direto para a pagina do produto (mostra login se nao logado)\\n    await page.goto('https://app.cotadorsimplificado.com.br/?produto=hap', { waitUntil: 'networkidle2', timeout: 20000 });\\n    await w(2000);\\n    d.push('P');\\n    \\n    // Verifica se precisa logar\\n    const needsLogin = await page.evaluate(() => {\\n      return !!document.querySelector('#email_principal') || document.body.innerText.includes('Digite seu Email');\\n    });\\n    \\n    if (needsLogin) {\\n      d.push('NL');\\n      \\n      // EMAIL\\n      const eInp = await page.$('#email_principal');\\n      if (eInp) { await eInp.type(EMAIL, { delay: 10 }); }\\n      await w(300);\\n      \\n      // CONTINUAR\\n      await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Continuar com Email')); if(b) b.click(); });\\n      await w(2000);\\n      \\n      // SENHA\\n      const pwd = await page.$('#pwdInput');\\n      if (pwd) { await pwd.type(SENHA, { delay: 10 }); d.push('S'); }\\n      await w(300);\\n      \\n      // ENTRAR\\n      await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Entrar'); if(b) b.click(); });\\n      d.push('E');\\n      \\n      // ESPERA LOGIN COMPLETAR - verifica se Hapvida aparece\\n      for (let i = 0; i < 10; i++) {\\n        await w(1000);\\n        const hasHapvida = await page.evaluate(() => !!document.querySelector('img[src*=\\\"hapvida\\\"]'));\\n        if (hasHapvida) {\\n          d.push('H' + i);\\n          break;\\n        }\\n      }\\n    } else {\\n      d.push('AL'); // Already logged in\\n    }\\n    \\n    // CLICA NO HAPVIDA (na pagina de selecao de operadora)\\n    const hapClicked = await page.evaluate(() => {\\n      const img = document.querySelector('img[src*=\\\"hapvida\\\"]');\\n      if (img) {\\n        const parent = img.closest('.clickable-element') || img.parentElement.parentElement;\\n        if (parent) { parent.click(); return true; }\\n      }\\n      return false;\\n    });\\n    if (hapClicked) { d.push('HC'); } else { d.push('HC:no'); }\\n    await w(2000);\\n    \\n    // AGORA VERIFICA SE ESTA NA PAGINA DO FORM\\n    const pageState = await page.evaluate(() => {\\n      const hasPME = [...document.querySelectorAll('.clickable-element')].some(e => e.textContent.includes('PME') && e.textContent.includes('29'));\\n      const hasNome = !!document.querySelector('#id-nomelead');\\n      const text = document.body.innerText.substring(0, 300);\\n      return { hasPME, hasNome, text: text.substring(0, 150) };\\n    });\\n    \\n    d.push('PME:' + pageState.hasPME);\\n    \\n    if (!pageState.hasPME) {\\n      return { success: false, debug: d.join('-'), pageState, message: 'PME not found after login' };\\n    }\\n    \\n    // PME\\n    await page.evaluate(() => { const p = [...document.querySelectorAll('.clickable-element')].find(e => e.textContent.includes('PME') && e.textContent.includes('29')); if(p) p.click(); });\\n    await w(1000);\\n    d.push('M');\\n    \\n    // NOME\\n    const nInp = await page.$('#id-nomelead');\\n    if (nInp) { await nInp.type('teste', { delay: 5 }); d.push('N'); }\\n    await w(300);\\n    \\n    // AVANCAR 1\\n    await page.evaluate(() => { const btns = document.querySelectorAll('button'); for(const b of btns) { const s = getComputedStyle(b); if(b.textContent.includes('Avan') && s.display !== 'none' && s.visibility !== 'hidden') { b.click(); break; } } });\\n    await w(1500);\\n    d.push('1');\\n    \\n    // Verifica se avancou\\n    const step2 = await page.evaluate(() => !!document.querySelector('#cidade_nome'));\\n    d.push('S2:' + step2);\\n    \\n    return { success: true, debug: d.join('-'), pageState };\\n  } catch (error) {\\n    return { success: false, error: error.message, debug: d.join('-') };\\n  }\\n}\"\n}",
+        "options": {"timeout": 90000}
+      },
+      "id": "executar",
+      "name": "1-Executar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { number: '5583999471031', text: '*v18 LOGIN FIX*\\n\\nDebug: ' + ($json.debug || 'N/A') + '\\n\\nPageState: ' + JSON.stringify($json.pageState || {}).substring(0, 200) + '\\n\\nErro: ' + ($json.error || $json.message || 'nenhum') } }}",
+        "options": {}
+      },
+      "id": "whatsapp",
+      "name": "2-WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [600, 300]
+    }
+  ],
+  "connections": {
+    "Executar": { "main": [[{"node": "1-Executar", "type": "main", "index": 0}]] },
+    "1-Executar": { "main": [[{"node": "2-WhatsApp", "type": "main", "index": 0}]] }
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "18",
+  "meta": {"templateCredsSetupCompleted": true, "instanceId": "local"},
+  "tags": []
+}
