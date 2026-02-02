@@ -1,0 +1,74 @@
+{
+  "name": "Cotador Hapvida - v5 OTIMIZADO (waits reduzidos)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Executar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-docker.32vkgz.easypanel.host/function",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"code\": \"export default async function ({ page }) {\\n  const EMAIL = 'jessicamendesbarbosa5@gmail.com';\\n  const SENHA = 'amovoced28';\\n  const w = (ms) => new Promise(r => setTimeout(r, ms));\\n\\n  try {\\n    await page.setViewport({ width: 1280, height: 800 });\\n\\n    // LOGIN\\n    await page.goto('https://app.cotadorsimplificado.com.br/login', { waitUntil: 'networkidle2', timeout: 30000 });\\n    await w(1000);\\n    const eInp = await page.$('#email_principal');\\n    if (eInp) { await eInp.click(); await eInp.type(EMAIL, { delay: 20 }); }\\n    await w(500);\\n    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Continuar com Email')); if(b) b.click(); });\\n    await page.waitForSelector('#pwdInput', { timeout: 10000 });\\n    const sInp = await page.$('#pwdInput');\\n    if (sInp) { await sInp.click(); await sInp.type(SENHA, { delay: 20 }); }\\n    await w(500);\\n    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Entrar'); if(b) b.click(); });\\n    await w(4000);\\n    await page.evaluate(() => { const img = document.querySelector('img[src*=\\\\\\\"hapvida\\\\\\\"]'); if(img) { const p = img.closest('.clickable-element') || img.parentElement.parentElement; if(p) p.click(); } });\\n    await w(2000);\\n\\n    // FORM\\n    await page.goto('https://app.cotadorsimplificado.com.br/?produto=hap', { waitUntil: 'domcontentloaded', timeout: 30000 });\\n    await w(2000);\\n    await page.evaluate(() => { const p = [...document.querySelectorAll('.clickable-element')].find(e => e.textContent.includes('PME') && e.textContent.includes('29')); if(p) p.click(); });\\n    await w(1500);\\n    await page.waitForSelector('#id-nomelead', { timeout: 8000 });\\n    const nInp = await page.$('#id-nomelead');\\n    if (nInp) { await nInp.click(); await nInp.type('teste', { delay: 15 }); }\\n    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Avan')); if(b) b.click(); });\\n    await w(2000);\\n\\n    // CIDADE\\n    await page.waitForSelector('#cidade_nome', { timeout: 8000 });\\n    const cInp = await page.$('#cidade_nome');\\n    if (cInp) { await cInp.click(); await cInp.type('teresina', { delay: 50 }); }\\n    await w(1500);\\n    const tCoords = await page.evaluate(() => { for (const el of document.querySelectorAll('.clickable-element')) { if (el.textContent.trim() === 'Teresina - PI') { const r = el.getBoundingClientRect(); if (r.width > 0) return { x: r.x + r.width/2, y: r.y + r.height/2 }; } } return null; });\\n    if (tCoords) await page.mouse.click(tCoords.x, tCoords.y);\\n    await w(1000);\\n    try { await page.select('select.Dropdown', '\\\\\\\"mei___empres_rio_individual\\\\\\\"'); } catch(e) {}\\n    await w(800);\\n\\n    // AVANCAR 2\\n    const b2 = await page.$$('button');\\n    for (const btn of b2) { const i = await page.evaluate(el => { const s = window.getComputedStyle(el); return { t: el.textContent, d: s.display, v: s.visibility }; }, btn); if (i.t && i.t.includes('Avan') && i.d !== 'none' && i.v !== 'hidden') { await btn.click(); break; } }\\n    await w(2000);\\n\\n    // FAIXAS\\n    await page.evaluate(() => { document.querySelectorAll('input').forEach(inp => { const r = inp.getBoundingClientRect(); const s = window.getComputedStyle(inp); if (r.width > 0 && s.display !== 'none' && !inp.id && inp.placeholder === '0' && inp.className.includes('cocys')) { inp.focus(); inp.value = '1'; inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true })); } }); });\\n    await w(1000);\\n\\n    // AVANCAR 3\\n    const b3 = await page.$$('button');\\n    for (const btn of b3) { const i = await page.evaluate(el => { const s = window.getComputedStyle(el); return { t: el.textContent, d: s.display, v: s.visibility }; }, btn); if (i.t && i.t.includes('Avan') && i.d !== 'none' && i.v !== 'hidden') { await btn.click(); break; } }\\n    await w(2000);\\n\\n    // ADD PRODUTOS\\n    const b4 = await page.$$('button');\\n    for (const btn of b4) { const i = await page.evaluate(el => { const s = window.getComputedStyle(el); return { t: el.textContent.trim(), d: s.display, v: s.visibility }; }, btn); if (i.t === 'Add Produtos' && i.d !== 'none' && i.v !== 'hidden') { await btn.click(); break; } }\\n    await w(2000);\\n\\n    // HAPVIDA\\n    const hCoords = await page.evaluate(() => { for (const el of document.querySelectorAll('.clickable-element')) { if (el.textContent.trim() === 'Hapvida') { const r = el.getBoundingClientRect(); if (r.width > 0) return { x: r.x + r.width/2, y: r.y + r.height/2 }; } } return null; });\\n    if (hCoords) await page.mouse.click(hCoords.x, hCoords.y);\\n    await w(2000);\\n\\n    // TABELA\\n    const tabCoords = await page.evaluate(() => { for (const el of document.querySelectorAll('.clickable-element')) { const t = el.textContent.trim(); if (t.includes('Teresina') && t.includes('2') && t.includes('29')) { const r = el.getBoundingClientRect(); if (r.width > 0) return { x: r.x + r.width/2, y: r.y + r.height/2 }; } } return null; });\\n    if (tabCoords) await page.mouse.click(tabCoords.x, tabCoords.y);\\n    await w(1500);\\n\\n    // AMBULATORIAL\\n    const aCoords = await page.evaluate(() => { for (const el of document.querySelectorAll('.clickable-element')) { if (el.textContent.trim() === 'Ambulatorial') { const r = el.getBoundingClientRect(); if (r.width > 0) return { x: r.x + r.width/2, y: r.y + r.height/2 }; } } return null; });\\n    if (aCoords) await page.mouse.click(aCoords.x, aCoords.y);\\n    await w(1500);\\n\\n    // ACOMODACAO\\n    const acCoords = await page.evaluate(() => { for (const el of document.querySelectorAll('.clickable-element')) { const t = el.textContent.trim().toLowerCase(); if (t.includes('sem acomodação') && t.includes('coparticipação')) { const r = el.getBoundingClientRect(); if (r.width > 0) return { x: r.x + r.width/2, y: r.y + r.height/2 }; } } return null; });\\n    if (acCoords) await page.mouse.click(acCoords.x, acCoords.y);\\n    await w(1500);\\n\\n    // FECHA MODAL\\n    await page.mouse.click(1200, 400);\\n    await w(2000);\\n\\n    // EXTRAI\\n    const faixas = await page.evaluate(() => { const nomes = ['0 a 18 anos','19 a 23 anos','24 a 28 anos','29 a 33 anos','34 a 38 anos','39 a 43 anos','44 a 48 anos','49 a 53 anos','54 a 58 anos','59 anos ou mais']; const vals = []; const regex = /^\\\\d{2,3}[,.]\\\\d{2}$/; document.querySelectorAll('div, span').forEach(el => { const s = window.getComputedStyle(el); const r = el.getBoundingClientRect(); if (s.display !== 'none' && r.width > 0 && el.textContent.length < 15) { const t = el.textContent.trim(); if (regex.test(t) && !vals.some(v => v.text === t) && r.y > 650 && r.x > 150 && r.x < 280) { vals.push({ text: t, y: r.y }); } } }); vals.sort((a,b) => a.y - b.y); return vals.slice(0,10).map((v,i) => ({ faixa_etaria: nomes[i], valor: 'R$ ' + v.text.replace('.',',') })); });\\n\\n    const screenshot = await page.screenshot({ encoding: 'base64' });\\n    const pageText = await page.evaluate(() => document.body.innerText.substring(0, 800));\\n\\n    return { success: true, faixas, screenshot, pageText };\\n  } catch (error) {\\n    const screenshot = await page.screenshot({ encoding: 'base64' }).catch(() => null);\\n    return { success: false, error: error.message, screenshot };\\n  }\\n}\"\n}",
+        "options": {"timeout": 180000}
+      },
+      "id": "executar-tudo",
+      "name": "1-ExecutarTudo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { number: '5583999471031', text: '*RESULTADO*\\n\\n' + ($json.success ? ($json.faixas || []).map(f => f.faixa_etaria + ': ' + f.valor).join('\\n') : 'ERRO: ' + $json.error) + '\\n\\n---\\n' + ($json.pageText || '').substring(0, 300) } }}",
+        "options": {}
+      },
+      "id": "whatsapp-texto",
+      "name": "2-WhatsAppTexto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendMedia/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { number: '5583999471031', mediatype: 'image', media: 'data:image/png;base64,' + $('1-ExecutarTudo').first().json.screenshot, caption: 'Screenshot' } }}",
+        "options": {}
+      },
+      "id": "whatsapp-imagem",
+      "name": "3-WhatsAppImagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Executar": { "main": [[{"node": "1-ExecutarTudo", "type": "main", "index": 0}]] },
+    "1-ExecutarTudo": { "main": [[{"node": "2-WhatsAppTexto", "type": "main", "index": 0}]] },
+    "2-WhatsAppTexto": { "main": [[{"node": "3-WhatsAppImagem", "type": "main", "index": 0}]] }
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "5",
+  "meta": {"templateCredsSetupCompleted": true, "instanceId": "local"},
+  "tags": []
+}
