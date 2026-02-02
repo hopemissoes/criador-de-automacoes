@@ -21,7 +21,7 @@ app.get('/status', (req, res) => {
   res.json(status);
 });
 
-// Executar cotação para múltiplas cidades
+// Executar cotação para múltiplas cidades COM WEBHOOK por cidade
 app.post('/cotacao', async (req, res) => {
   if (status.running) {
     return res.status(429).json({
@@ -34,7 +34,8 @@ app.post('/cotacao', async (req, res) => {
   const {
     email = 'jessicamendesbarbosa5@gmail.com',
     senha = 'amovoced28',
-    cidades = 'Teresina - PI'  // Pode ser string (uma por linha) ou array
+    cidades = 'Teresina - PI',
+    webhook_url = null  // URL para enviar resultado de cada cidade
   } = req.body || {};
 
   // Converte cidades para array se for string
@@ -47,13 +48,14 @@ app.post('/cotacao', async (req, res) => {
   console.log(`[${new Date().toISOString()}] Iniciando cotação...`);
   console.log(`Email: ${email}`);
   console.log(`Cidades (${cidadesArray.length}):`, cidadesArray);
+  console.log(`Webhook: ${webhook_url || 'não configurado'}`);
   console.log('='.repeat(50));
 
   status.running = true;
   status.lastRun = new Date().toISOString();
 
   try {
-    const result = await executarCotacao(email, senha, cidadesArray);
+    const result = await executarCotacao(email, senha, cidadesArray, webhook_url);
     status.lastResult = result;
     status.running = false;
 
@@ -86,17 +88,20 @@ Endpoints:
   GET  /status  - Status da última execução
   POST /cotacao - Executar cotação
 
-Exemplo n8n (múltiplas cidades):
+Exemplo n8n (com webhook por cidade):
   POST http://localhost:${PORT}/cotacao
   Body: {
-    "email": "...",
-    "senha": "...",
-    "cidades": "Teresina - PI\\nRecife - PE\\nSalvador - BA"
+    "cidades": "Teresina - PI\\nRecife - PE",
+    "webhook_url": "http://n8n:5678/webhook/cotacao-resultado"
   }
 
-  Ou com array:
-  Body: {
-    "cidades": ["Teresina - PI", "Recife - PE"]
+  O webhook receberá após CADA cidade:
+  {
+    "cidade": "Teresina - PI",
+    "cidade_index": 1,
+    "total_cidades": 2,
+    "success": true,
+    "faixas": [...]
   }
 `);
 });

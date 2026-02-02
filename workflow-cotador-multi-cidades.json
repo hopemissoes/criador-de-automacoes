@@ -36,7 +36,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"email\": \"jessicamendesbarbosa5@gmail.com\", \"senha\": \"amovoced28\", \"cidades\": $json.Cidades } }}",
+        "jsonBody": "={{ { \"email\": \"jessicamendesbarbosa5@gmail.com\", \"senha\": \"amovoced28\", \"cidades\": $json.Cidades, \"webhook_url\": \"http://n8n:5678/webhook/cotacao-resultado\" } }}",
         "options": {
           "timeout": 600000
         }
@@ -49,10 +49,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// Formata os resultados para envio no WhatsApp\nconst resultados = $input.first().json.resultados || {};\nconst totalCidades = $input.first().json.total_cidades || 0;\n\nlet mensagem = `*COTAÇÃO HAPVIDA*\\n`;\nmensagem += `Total de cidades: ${totalCidades}\\n`;\nmensagem += `${'='.repeat(30)}\\n\\n`;\n\nfor (const [cidade, dados] of Object.entries(resultados)) {\n  mensagem += `*📍 ${cidade}*\\n`;\n  \n  if (dados.success && dados.faixas && dados.faixas.length > 0) {\n    mensagem += `✅ Cotação obtida\\n\\n`;\n    dados.faixas.forEach(f => {\n      mensagem += `${f.faixa_etaria}: ${f.valor}\\n`;\n    });\n  } else {\n    mensagem += `❌ ${dados.error || 'Erro desconhecido'}\\n`;\n    if (dados.operadoras_disponiveis && dados.operadoras_disponiveis.length > 0) {\n      mensagem += `Operadoras disponíveis: ${dados.operadoras_disponiveis.join(', ')}\\n`;\n    }\n  }\n  \n  mensagem += `\\n${'─'.repeat(25)}\\n\\n`;\n}\n\n// Também retorna JSON estruturado\nreturn [{ \n  json: { \n    mensagem_formatada: mensagem,\n    resultados_json: resultados,\n    total_cidades: totalCidades\n  } \n}];"
+        "jsCode": "// Retorna resumo final após todas as cidades\nconst result = $input.first().json;\n\nlet mensagem = `\\n${'='.repeat(30)}\\n`;\nmensagem += `*RESUMO FINAL*\\n`;\nmensagem += `Total processado: ${result.total_cidades || 0} cidades\\n`;\nmensagem += `Sucesso: ${result.sucesso || 0}\\n`;\nmensagem += `Falhas: ${result.falhas || 0}\\n`;\nmensagem += `${'='.repeat(30)}`;\n\nreturn [{ \n  json: { \n    mensagem_resumo: mensagem,\n    resultado_completo: result\n  } \n}];"
       },
-      "id": "formatar_msg",
-      "name": "2-Formatar Mensagem",
+      "id": "formatar_resumo",
+      "name": "2-Resumo Final",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [600, 300]
@@ -70,36 +70,14 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { number: '5583999471031', text: $json.mensagem_formatada } }}",
+        "jsonBody": "={{ { number: '5583999471031', text: $json.mensagem_resumo } }}",
         "options": {}
       },
-      "id": "whatsapp_msg",
-      "name": "3-WhatsApp Mensagem",
+      "id": "whatsapp_resumo",
+      "name": "3-WhatsApp Resumo",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [800, 300]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {"name": "Content-Type", "value": "application/json"},
-            {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { number: '5583999471031', text: '```json\\n' + JSON.stringify($json.resultados_json, null, 2) + '\\n```' } }}",
-        "options": {}
-      },
-      "id": "whatsapp_json",
-      "name": "4-WhatsApp JSON",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [800, 450]
     }
   ],
   "connections": {
@@ -107,22 +85,17 @@
       "main": [[{"node": "1-Cotação API", "type": "main", "index": 0}]]
     },
     "1-Cotação API": {
-      "main": [[{"node": "2-Formatar Mensagem", "type": "main", "index": 0}]]
+      "main": [[{"node": "2-Resumo Final", "type": "main", "index": 0}]]
     },
-    "2-Formatar Mensagem": {
-      "main": [
-        [
-          {"node": "3-WhatsApp Mensagem", "type": "main", "index": 0},
-          {"node": "4-WhatsApp JSON", "type": "main", "index": 0}
-        ]
-      ]
+    "2-Resumo Final": {
+      "main": [[{"node": "3-WhatsApp Resumo", "type": "main", "index": 0}]]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "multi-cidades-v1",
+  "versionId": "multi-cidades-v2",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "local"
