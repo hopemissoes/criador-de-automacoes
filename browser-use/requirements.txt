@@ -1,4 +1,0 @@
-browser-use==0.1.40
-playwright==1.49.1
-langchain-anthropic==0.3.0
-flask==3.1.0
