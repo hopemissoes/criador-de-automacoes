@@ -36,66 +36,28 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"email\": \"jessicamendesbarbosa5@gmail.com\", \"senha\": \"amovoced28\", \"cidades\": $json.Cidades, \"webhook_url\": \"http://n8n:5678/webhook/cotacao-resultado\" } }}",
+        "jsonBody": "={{ { \"cidades\": $json.Cidades } }}",
         "options": {
           "timeout": 600000
         }
       },
       "id": "cotacao_api",
-      "name": "1-Cotação API",
+      "name": "Executar Cotação",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [400, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Retorna resumo final após todas as cidades\nconst result = $input.first().json;\n\nlet mensagem = `\\n${'='.repeat(30)}\\n`;\nmensagem += `*RESUMO FINAL*\\n`;\nmensagem += `Total processado: ${result.total_cidades || 0} cidades\\n`;\nmensagem += `Sucesso: ${result.sucesso || 0}\\n`;\nmensagem += `Falhas: ${result.falhas || 0}\\n`;\nmensagem += `${'='.repeat(30)}`;\n\nreturn [{ \n  json: { \n    mensagem_resumo: mensagem,\n    resultado_completo: result\n  } \n}];"
-      },
-      "id": "formatar_resumo",
-      "name": "2-Resumo Final",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [600, 300]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {"name": "Content-Type", "value": "application/json"},
-            {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { number: '5583999471031', text: $json.mensagem_resumo } }}",
-        "options": {}
-      },
-      "id": "whatsapp_resumo",
-      "name": "3-WhatsApp Resumo",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [800, 300]
     }
   ],
   "connections": {
     "Formulário de Cidades": {
-      "main": [[{"node": "1-Cotação API", "type": "main", "index": 0}]]
-    },
-    "1-Cotação API": {
-      "main": [[{"node": "2-Resumo Final", "type": "main", "index": 0}]]
-    },
-    "2-Resumo Final": {
-      "main": [[{"node": "3-WhatsApp Resumo", "type": "main", "index": 0}]]
+      "main": [[{"node": "Executar Cotação", "type": "main", "index": 0}]]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "multi-cidades-v2",
+  "versionId": "multi-cidades-v3-direto",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "local"
