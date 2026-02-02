@@ -1,0 +1,147 @@
+{
+  "name": "Cotador Hapvida - v8 ULTRA RAPIDO",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Executar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst cookies = staticData.cookies || [];\nconst localStorage = staticData.localStorage || {};\nconst ultimoLogin = staticData.ultimoLogin || null;\nconst agora = Date.now();\nconst umaHora = 60 * 60 * 1000;\nconst temSessao = cookies.length > 0 && ultimoLogin && (agora - new Date(ultimoLogin).getTime()) < umaHora;\nreturn [{ json: { temSessao, cookies, localStorage } }];"
+      },
+      "id": "verificar",
+      "name": "1-VerificarSessao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "conditions": { "boolean": [{ "value1": "={{ $json.temSessao }}", "value2": true }] }
+      },
+      "id": "if-sessao",
+      "name": "2-TemSessao?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-docker.32vkgz.easypanel.host/function",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"code\": \"export default async function ({ page }) {\\n  const EMAIL = 'jessicamendesbarbosa5@gmail.com';\\n  const SENHA = 'amovoced28';\\n  const w = (ms) => new Promise(r => setTimeout(r, ms));\\n  try {\\n    await page.setViewport({ width: 1280, height: 800 });\\n    await page.goto('https://app.cotadorsimplificado.com.br/login', { waitUntil: 'networkidle2', timeout: 45000 });\\n    await w(1000);\\n    const eInp = await page.$('#email_principal');\\n    if (eInp) { await eInp.click(); await eInp.type(EMAIL, { delay: 20 }); }\\n    await w(500);\\n    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Continuar com Email')); if(b) b.click(); });\\n    await page.waitForSelector('#pwdInput', { timeout: 10000 });\\n    const sInp = await page.$('#pwdInput');\\n    if (sInp) { await sInp.click(); await sInp.type(SENHA, { delay: 20 }); }\\n    await w(500);\\n    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Entrar'); if(b) b.click(); });\\n    await w(4000);\\n    await page.evaluate(() => { const img = document.querySelector('img[src*=\\\\\\\"hapvida\\\\\\\"]'); if(img) { const p = img.closest('.clickable-element') || img.parentElement.parentElement; if(p) p.click(); } });\\n    await w(2000);\\n    const cookies = await page.cookies();\\n    const localStorage = await page.evaluate(() => { const items = {}; for (let i = 0; i < window.localStorage.length; i++) { const key = window.localStorage.key(i); items[key] = window.localStorage.getItem(key); } return items; });\\n    return { success: true, fase: 'LOGIN', cookies, localStorage };\\n  } catch (error) { return { success: false, fase: 'LOGIN', error: error.message }; }\\n}\"\n}",
+        "options": {"timeout": 90000}
+      },
+      "id": "fazer-login",
+      "name": "3A-FazerLogin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: { success: true, fase: 'SESSAO', cookies: input.cookies, localStorage: input.localStorage } }];"
+      },
+      "id": "usar-sessao",
+      "name": "3B-UsarSessao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst input = $input.first().json;\nif (input.cookies && input.cookies.length > 0) {\n  staticData.cookies = input.cookies;\n  staticData.localStorage = input.localStorage;\n  staticData.ultimoLogin = new Date().toISOString();\n}\nreturn [{ json: input }];"
+      },
+      "id": "salvar-sessao",
+      "name": "4-SalvarSessao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { number: '5583999471031', text: 'FASE 1: ' + $json.fase + ' - Cookies: ' + ($json.cookies ? $json.cookies.length : 0) } }}",
+        "options": {}
+      },
+      "id": "whatsapp-fase1",
+      "name": "5-WhatsAppFase1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('4-SalvarSessao').first().json;\nconst cookies = JSON.stringify(input.cookies || []);\nconst localStorage = JSON.stringify(input.localStorage || {});\n\nconst code = `export default async function ({ page }) {\n  const w = (ms) => new Promise(r => setTimeout(r, ms));\n  const cookies = ${cookies};\n  const ls = ${localStorage};\n  let debug = [];\n  try {\n    await page.setViewport({ width: 1280, height: 800 });\n    await page.goto('https://app.cotadorsimplificado.com.br/?produto=hap', { waitUntil: 'domcontentloaded', timeout: 45000 });\n    if (cookies.length > 0) await page.setCookie(...cookies);\n    await page.evaluate((ls) => { for (const [k, v] of Object.entries(ls)) window.localStorage.setItem(k, v); }, ls);\n    await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });\n    await w(3000);\n    debug.push('pg');\n    \n    await page.evaluate(() => { const p = [...document.querySelectorAll('.clickable-element')].find(e => e.textContent.includes('PME') && e.textContent.includes('29')); if(p) p.click(); });\n    await w(1500);\n    debug.push('pme');\n    \n    await page.waitForSelector('#id-nomelead', { timeout: 8000 });\n    const n = await page.$('#id-nomelead');\n    if (n) { await n.click(); await n.type('teste', { delay: 15 }); }\n    debug.push('nm');\n    \n    const b1 = await page.$$('button');\n    for (const btn of b1) { const i = await page.evaluate(el => { const s = window.getComputedStyle(el); return { t: el.textContent, d: s.display, v: s.visibility }; }, btn); if (i.t && i.t.includes('Avan') && i.d !== 'none' && i.v !== 'hidden') { await btn.click(); break; } }\n    await w(2500);\n    debug.push('av1');\n    \n    await page.waitForSelector('#cidade_nome', { timeout: 8000 });\n    const c = await page.$('#cidade_nome');\n    if (c) { await c.click(); await c.type('teresina', { delay: 80 }); }\n    await w(1500);\n    const tc = await page.evaluate(() => { for (const el of document.querySelectorAll('.clickable-element')) { if (el.textContent.trim() === 'Teresina - PI') { const r = el.getBoundingClientRect(); if (r.width > 0) return { x: r.x + r.width/2, y: r.y + r.height/2 }; } } return null; });\n    if (tc) await page.mouse.click(tc.x, tc.y);\n    await w(1500);\n    debug.push('cid');\n    \n    try { await page.select('select.Dropdown', '\"mei___empres_rio_individual\"'); } catch(e) {}\n    await w(1000);\n    debug.push('mei');\n    \n    const b2 = await page.$$('button');\n    for (const btn of b2) { const i = await page.evaluate(el => { const s = window.getComputedStyle(el); return { t: el.textContent, d: s.display, v: s.visibility }; }, btn); if (i.t && i.t.includes('Avan') && i.d !== 'none' && i.v !== 'hidden') { await btn.click(); break; } }\n    await w(2500);\n    debug.push('av2');\n    \n    const fx = await page.evaluate(() => { let c = 0; document.querySelectorAll('input').forEach(inp => { const r = inp.getBoundingClientRect(); const s = window.getComputedStyle(inp); if (r.width > 0 && s.display !== 'none' && !inp.id && inp.placeholder === '0' && inp.className.includes('cocys')) { inp.focus(); inp.value = '1'; inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true })); c++; } }); return c; });\n    await w(1000);\n    debug.push('fx' + fx);\n    \n    const b3 = await page.$$('button');\n    for (const btn of b3) { const i = await page.evaluate(el => { const s = window.getComputedStyle(el); return { t: el.textContent, d: s.display, v: s.visibility }; }, btn); if (i.t && i.t.includes('Avan') && i.d !== 'none' && i.v !== 'hidden') { await btn.click(); break; } }\n    await w(3000);\n    debug.push('av3');\n    \n    return { success: true, fase: 'FORM', debug, cookies: await page.cookies(), localStorage: ls };\n  } catch (error) { return { success: false, fase: 'FORM', error: error.message, debug }; }\n}`;\n\nreturn [{ json: { code } }];"
+      },
+      "id": "montar-form",
+      "name": "6-MontarForm",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-docker.32vkgz.easypanel.host/function",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { code: $json.code } }}",
+        "options": {"timeout": 90000}
+      },
+      "id": "executar-form",
+      "name": "7-ExecutarForm",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1600, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { number: '5583999471031', text: 'FASE 2: ' + $json.fase + '\\nDebug: ' + ($json.debug || []).join('-') + '\\nErro: ' + ($json.error || 'nenhum') } }}",
+        "options": {}
+      },
+      "id": "whatsapp-fase2",
+      "name": "8-WhatsAppFase2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1800, 300]
+    }
+  ],
+  "connections": {
+    "Executar": { "main": [[{"node": "1-VerificarSessao", "type": "main", "index": 0}]] },
+    "1-VerificarSessao": { "main": [[{"node": "2-TemSessao?", "type": "main", "index": 0}]] },
+    "2-TemSessao?": { "main": [[{"node": "3B-UsarSessao", "type": "main", "index": 0}], [{"node": "3A-FazerLogin", "type": "main", "index": 0}]] },
+    "3A-FazerLogin": { "main": [[{"node": "4-SalvarSessao", "type": "main", "index": 0}]] },
+    "3B-UsarSessao": { "main": [[{"node": "4-SalvarSessao", "type": "main", "index": 0}]] },
+    "4-SalvarSessao": { "main": [[{"node": "5-WhatsAppFase1", "type": "main", "index": 0}]] },
+    "5-WhatsAppFase1": { "main": [[{"node": "6-MontarForm", "type": "main", "index": 0}]] },
+    "6-MontarForm": { "main": [[{"node": "7-ExecutarForm", "type": "main", "index": 0}]] },
+    "7-ExecutarForm": { "main": [[{"node": "8-WhatsAppFase2", "type": "main", "index": 0}]] }
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "8",
+  "meta": {"templateCredsSetupCompleted": true, "instanceId": "local"},
+  "tags": []
+}
