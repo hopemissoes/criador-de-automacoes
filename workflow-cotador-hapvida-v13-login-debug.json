@@ -1,0 +1,56 @@
+{
+  "name": "Cotador Hapvida - v13 LOGIN DEBUG",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Executar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-docker.32vkgz.easypanel.host/function",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"code\": \"export default async function ({ page }) {\\n  const EMAIL = 'jessicamendesbarbosa5@gmail.com';\\n  const SENHA = 'amovoced28';\\n  const w = (ms) => new Promise(r => setTimeout(r, ms));\\n  let d = [];\\n  \\n  try {\\n    // STEALTH\\n    await page.evaluateOnNewDocument(() => {\\n      Object.defineProperty(navigator, 'webdriver', { get: () => false });\\n      Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });\\n      Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'pt', 'en-US', 'en'] });\\n      window.chrome = { runtime: {} };\\n    });\\n    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');\\n    await page.setViewport({ width: 1280, height: 800 });\\n    \\n    await page.goto('https://app.cotadorsimplificado.com.br/login', { waitUntil: 'networkidle2', timeout: 30000 });\\n    d.push('page');\\n    await w(1500);\\n    \\n    // EMAIL\\n    const eInp = await page.$('#email_principal');\\n    if (eInp) {\\n      await eInp.click();\\n      await w(300);\\n      await eInp.type(EMAIL, { delay: 50 });\\n    }\\n    await w(800);\\n    d.push('email');\\n    \\n    // CONTINUAR\\n    await page.evaluate(() => {\\n      const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Continuar com Email'));\\n      if(b) b.click();\\n    });\\n    await w(3000);\\n    d.push('cont');\\n    \\n    // SENHA\\n    let pwdFound = false;\\n    for (let i = 0; i < 5; i++) {\\n      const pwd = await page.$('#pwdInput');\\n      if (pwd) {\\n        pwdFound = true;\\n        await pwd.click();\\n        await w(300);\\n        await pwd.type(SENHA, { delay: 50 });\\n        d.push('senha');\\n        break;\\n      }\\n      await w(1000);\\n    }\\n    if (!pwdFound) {\\n      return { success: false, error: 'pwdInput not found', debug: d };\\n    }\\n    await w(800);\\n    \\n    // ENTRAR - usando click direto no elemento\\n    const entrarResult = await page.evaluate(() => {\\n      const buttons = document.querySelectorAll('button');\\n      for (const b of buttons) {\\n        if (b.textContent.trim() === 'Entrar') {\\n          b.click();\\n          return 'clicked';\\n        }\\n      }\\n      return 'not found';\\n    });\\n    d.push('entrar:' + entrarResult);\\n    \\n    // ESPERA MAIS TEMPO para o login processar\\n    d.push('waiting...');\\n    await w(6000);\\n    \\n    // DEBUG: verifica estado da pagina\\n    const urlAfter = page.url();\\n    d.push('url1:' + urlAfter.substring(0, 50));\\n    \\n    const pageState = await page.evaluate(() => {\\n      const body = document.body;\\n      if (!body) return { error: 'no body' };\\n      \\n      const text = body.innerText.substring(0, 500);\\n      const hasError = text.includes('Senha incorreta') || text.includes('erro') || text.includes('inválid');\\n      const hasHapvida = !!document.querySelector('img[src*=\\\"hapvida\\\"]');\\n      const hasOperadoras = text.includes('Operadoras') || text.includes('Cotador');\\n      const buttons = [...document.querySelectorAll('button')].map(b => b.textContent.trim().substring(0, 20)).join(', ');\\n      \\n      return { hasError, hasHapvida, hasOperadoras, buttons: buttons.substring(0, 100), text: text.substring(0, 200) };\\n    });\\n    \\n    d.push('err:' + pageState.hasError);\\n    d.push('hap:' + pageState.hasHapvida);\\n    d.push('oper:' + pageState.hasOperadoras);\\n    \\n    // Se ainda na pagina de login, espera mais\\n    if (urlAfter.includes('/login')) {\\n      d.push('still login, waiting more...');\\n      await w(5000);\\n      const urlAfter2 = page.url();\\n      d.push('url2:' + urlAfter2.substring(0, 50));\\n    }\\n    \\n    // Tenta clicar no Hapvida se existir\\n    if (pageState.hasHapvida) {\\n      await page.evaluate(() => {\\n        const img = document.querySelector('img[src*=\\\"hapvida\\\"]');\\n        if(img) {\\n          const p = img.closest('.clickable-element') || img.parentElement.parentElement;\\n          if(p) p.click();\\n        }\\n      });\\n      d.push('hapvida clicked');\\n      await w(2000);\\n    }\\n    \\n    const finalUrl = page.url();\\n    const cookies = await page.cookies();\\n    \\n    return {\\n      success: true,\\n      debug: d,\\n      url: finalUrl,\\n      cookieCount: cookies.length,\\n      pageState\\n    };\\n  } catch (error) {\\n    d.push('ERR:' + error.message.substring(0, 50));\\n    return { success: false, error: error.message, debug: d };\\n  }\\n}\"\n}",
+        "options": {"timeout": 90000}
+      },
+      "id": "login-debug",
+      "name": "1-LoginDebug",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { number: '5583999471031', text: '*v13 LOGIN DEBUG*\\n\\nDebug: ' + ($json.debug || []).join(' | ') + '\\n\\nURL: ' + ($json.url || 'N/A') + '\\n\\nCookies: ' + ($json.cookieCount || 0) + '\\n\\nPageState: ' + JSON.stringify($json.pageState || {}).substring(0, 300) } }}",
+        "options": {}
+      },
+      "id": "whatsapp",
+      "name": "2-WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [600, 300]
+    }
+  ],
+  "connections": {
+    "Executar": { "main": [[{"node": "1-LoginDebug", "type": "main", "index": 0}]] },
+    "1-LoginDebug": { "main": [[{"node": "2-WhatsApp", "type": "main", "index": 0}]] }
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "13",
+  "meta": {"templateCredsSetupCompleted": true, "instanceId": "local"},
+  "tags": []
+}
