@@ -1,0 +1,74 @@
+{
+  "name": "Cotador Hapvida - v6 DEBUG",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Executar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-docker.32vkgz.easypanel.host/function",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"code\": \"export default async function ({ page }) {\\n  const EMAIL = 'jessicamendesbarbosa5@gmail.com';\\n  const SENHA = 'amovoced28';\\n  const w = (ms) => new Promise(r => setTimeout(r, ms));\\n  let debug = [];\\n\\n  try {\\n    await page.setViewport({ width: 1280, height: 800 });\\n\\n    // LOGIN\\n    await page.goto('https://app.cotadorsimplificado.com.br/login', { waitUntil: 'networkidle2', timeout: 30000 });\\n    debug.push('1-login page');\\n    await w(1000);\\n    \\n    const eInp = await page.$('#email_principal');\\n    if (eInp) { \\n      await eInp.click(); \\n      await eInp.type(EMAIL, { delay: 20 }); \\n      debug.push('2-email ok');\\n    } else {\\n      debug.push('2-email NOT FOUND');\\n    }\\n    await w(500);\\n    \\n    await page.evaluate(() => { \\n      const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Continuar com Email')); \\n      if(b) b.click(); \\n    });\\n    debug.push('3-continuar clicked');\\n    \\n    await page.waitForSelector('#pwdInput', { timeout: 10000 });\\n    const sInp = await page.$('#pwdInput');\\n    if (sInp) { \\n      await sInp.click(); \\n      await sInp.type(SENHA, { delay: 20 }); \\n      debug.push('4-senha ok');\\n    }\\n    await w(500);\\n    \\n    await page.evaluate(() => { \\n      const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Entrar'); \\n      if(b) b.click(); \\n    });\\n    debug.push('5-entrar clicked');\\n    await w(4000);\\n    \\n    // Check if logged in\\n    const urlAfterLogin = page.url();\\n    debug.push('6-url: ' + urlAfterLogin.substring(0, 50));\\n    \\n    // Hapvida click\\n    const hapClicked = await page.evaluate(() => { \\n      const img = document.querySelector('img[src*=\\\\\\\"hapvida\\\\\\\"]'); \\n      if(img) { \\n        const p = img.closest('.clickable-element') || img.parentElement.parentElement; \\n        if(p) { p.click(); return true; }\\n      } \\n      return false;\\n    });\\n    debug.push('7-hapvida: ' + hapClicked);\\n    await w(2000);\\n\\n    // FORM PAGE\\n    await page.goto('https://app.cotadorsimplificado.com.br/?produto=hap', { waitUntil: 'domcontentloaded', timeout: 30000 });\\n    debug.push('8-form page');\\n    await w(2000);\\n    \\n    // Check what's on the page\\n    const pageCheck = await page.evaluate(() => {\\n      const text = document.body.innerText.substring(0, 300);\\n      const hasPME = text.includes('PME');\\n      const hasLogin = text.includes('login') || text.includes('Email');\\n      const clickables = document.querySelectorAll('.clickable-element').length;\\n      return { hasPME, hasLogin, clickables, text: text.substring(0, 150) };\\n    });\\n    debug.push('9-hasPME: ' + pageCheck.hasPME + ' hasLogin: ' + pageCheck.hasLogin + ' clickables: ' + pageCheck.clickables);\\n    \\n    // PME click\\n    const pmeClicked = await page.evaluate(() => { \\n      const p = [...document.querySelectorAll('.clickable-element')].find(e => e.textContent.includes('PME') && e.textContent.includes('29')); \\n      if(p) { p.click(); return true; }\\n      return false;\\n    });\\n    debug.push('10-PME clicked: ' + pmeClicked);\\n    await w(1500);\\n    \\n    // Check for nome input\\n    const hasNomeInput = await page.$('#id-nomelead');\\n    debug.push('11-nomeInput exists: ' + !!hasNomeInput);\\n    \\n    // Take screenshot\\n    const screenshot = await page.screenshot({ encoding: 'base64' });\\n    const pageText = await page.evaluate(() => document.body.innerText.substring(0, 800));\\n\\n    return { success: true, debug, screenshot, pageText };\\n  } catch (error) {\\n    const screenshot = await page.screenshot({ encoding: 'base64' }).catch(() => null);\\n    return { success: false, error: error.message, debug, screenshot };\\n  }\\n}\"\n}",
+        "options": {"timeout": 120000}
+      },
+      "id": "executar-debug",
+      "name": "1-ExecutarDebug",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { number: '5583999471031', text: '*DEBUG*\\n\\n' + ($json.debug || []).join('\\n') + '\\n\\nERRO: ' + ($json.error || 'nenhum') + '\\n\\n---\\n' + ($json.pageText || '').substring(0, 400) } }}",
+        "options": {}
+      },
+      "id": "whatsapp-texto",
+      "name": "2-WhatsAppTexto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendMedia/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { number: '5583999471031', mediatype: 'image', media: 'data:image/png;base64,' + $('1-ExecutarDebug').first().json.screenshot, caption: 'Screenshot DEBUG' } }}",
+        "options": {}
+      },
+      "id": "whatsapp-imagem",
+      "name": "3-WhatsAppImagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Executar": { "main": [[{"node": "1-ExecutarDebug", "type": "main", "index": 0}]] },
+    "1-ExecutarDebug": { "main": [[{"node": "2-WhatsAppTexto", "type": "main", "index": 0}]] },
+    "2-WhatsAppTexto": { "main": [[{"node": "3-WhatsAppImagem", "type": "main", "index": 0}]] }
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "6",
+  "meta": {"templateCredsSetupCompleted": true, "instanceId": "local"},
+  "tags": []
+}
