@@ -12,7 +12,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://evolution-puppeteer-cotador.32vkgz.easypanel.host/cotacao",
+        "url": "http://evolution_puppeteer-cotador:80/cotacao",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -34,6 +34,16 @@
     },
     {
       "parameters": {
+        "jsCode": "// Extrai apenas o array de faixas etárias\nconst faixas = $input.first().json.faixas || [];\n\n// Retorna o array JSON puro\nreturn [{ json: { faixas } }];"
+      },
+      "id": "extract_json",
+      "name": "2-Extrair JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
         "sendHeaders": true,
@@ -45,14 +55,14 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { number: '5583999471031', text: '*COTAÇÃO HAPVIDA*\\n\\nStatus: ' + ($json.success ? '✅ Sucesso' : '❌ Erro') + '\\n\\nDebug: ' + ($json.debug || 'N/A') + '\\n\\n' + ($json.faixas && $json.faixas.length > 0 ? '📊 FAIXAS ETÁRIAS:\\n\\n' + $json.faixas.map(f => f.faixa_etaria + ': ' + f.valor).join('\\n') : 'Erro: ' + ($json.error || 'Nenhuma faixa encontrada')) } }}",
+        "jsonBody": "={{ { number: '5583999471031', text: JSON.stringify($json.faixas, null, 2) } }}",
         "options": {}
       },
       "id": "whatsapp",
-      "name": "2-WhatsApp",
+      "name": "3-WhatsApp JSON",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [600, 300]
+      "position": [800, 300]
     }
   ],
   "connections": {
@@ -60,14 +70,17 @@
       "main": [[{"node": "1-Cotacao", "type": "main", "index": 0}]]
     },
     "1-Cotacao": {
-      "main": [[{"node": "2-WhatsApp", "type": "main", "index": 0}]]
+      "main": [[{"node": "2-Extrair JSON", "type": "main", "index": 0}]]
+    },
+    "2-Extrair JSON": {
+      "main": [[{"node": "3-WhatsApp JSON", "type": "main", "index": 0}]]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "puppeteer-v1",
+  "versionId": "puppeteer-v2",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "local"
