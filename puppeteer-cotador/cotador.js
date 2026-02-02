@@ -90,8 +90,17 @@ async function executarCotacao(email, senha, cidade = 'Teresina - PI') {
         if (parent) parent.click();
       }
     });
-    await w(4000);
+    await w(3000);
     debug.push('HAPVIDA');
+
+    // === NAVEGA PARA PÁGINA DO PRODUTO (igual ao local) ===
+    console.log('📄 Navegando para página do produto...');
+    await page.goto('https://app.cotadorsimplificado.com.br/?produto=hap', {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+    await w(4000);
+    debug.push('PRODUTO_PAGE');
 
     // === FORMULÁRIO ===
     // PME
