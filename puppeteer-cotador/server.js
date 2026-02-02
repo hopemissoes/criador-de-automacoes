@@ -21,7 +21,7 @@ app.get('/status', (req, res) => {
   res.json(status);
 });
 
-// Executar cotação
+// Executar cotação para múltiplas cidades
 app.post('/cotacao', async (req, res) => {
   if (status.running) {
     return res.status(429).json({
@@ -30,29 +30,35 @@ app.post('/cotacao', async (req, res) => {
     });
   }
 
-  // Parâmetros opcionais
+  // Parâmetros
   const {
     email = 'jessicamendesbarbosa5@gmail.com',
     senha = 'amovoced28',
-    cidade = 'Teresina - PI'
+    cidades = 'Teresina - PI'  // Pode ser string (uma por linha) ou array
   } = req.body || {};
+
+  // Converte cidades para array se for string
+  let cidadesArray = cidades;
+  if (typeof cidades === 'string') {
+    cidadesArray = cidades.split('\n').map(c => c.trim()).filter(c => c.length > 0);
+  }
 
   console.log(`\n${'='.repeat(50)}`);
   console.log(`[${new Date().toISOString()}] Iniciando cotação...`);
   console.log(`Email: ${email}`);
-  console.log(`Cidade: ${cidade}`);
+  console.log(`Cidades (${cidadesArray.length}):`, cidadesArray);
   console.log('='.repeat(50));
 
   status.running = true;
   status.lastRun = new Date().toISOString();
 
   try {
-    const result = await executarCotacao(email, senha, cidade);
+    const result = await executarCotacao(email, senha, cidadesArray);
     status.lastResult = result;
     status.running = false;
 
     console.log(`\n✅ Cotação finalizada!`);
-    console.log(`Faixas encontradas: ${result.faixas?.length || 0}`);
+    console.log(`Total de cidades processadas: ${result.total_cidades || 0}`);
 
     res.json(result);
   } catch (error) {
@@ -80,8 +86,17 @@ Endpoints:
   GET  /status  - Status da última execução
   POST /cotacao - Executar cotação
 
-Exemplo n8n:
+Exemplo n8n (múltiplas cidades):
   POST http://localhost:${PORT}/cotacao
-  Body: {"email": "...", "senha": "...", "cidade": "Teresina - PI"}
+  Body: {
+    "email": "...",
+    "senha": "...",
+    "cidades": "Teresina - PI\\nRecife - PE\\nSalvador - BA"
+  }
+
+  Ou com array:
+  Body: {
+    "cidades": ["Teresina - PI", "Recife - PE"]
+  }
 `);
 });

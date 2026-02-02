@@ -3,15 +3,22 @@ const puppeteer = require('puppeteer');
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
 /**
- * Executa a cotação no Cotador Simplificado
- * BASEADO EXATAMENTE no debug-local.js que funcionou
+ * Executa a cotação no Cotador Simplificado para MÚLTIPLAS CIDADES
+ * Recebe array de cidades do n8n e retorna cotações separadas
  */
-async function executarCotacao(email, senha, cidade = 'Teresina - PI') {
+async function executarCotacao(email, senha, cidades = ['Teresina - PI']) {
   const debug = [];
+  const resultados = {};
   let browser;
 
+  // Garante que cidades é um array
+  if (typeof cidades === 'string') {
+    cidades = cidades.split('\n').map(c => c.trim()).filter(c => c.length > 0);
+  }
+
+  console.log(`🚀 Iniciando cotação para ${cidades.length} cidade(s):`, cidades);
+
   try {
-    console.log('🚀 Iniciando Chrome...');
     browser = await puppeteer.launch({
       headless: 'new',
       args: [
@@ -83,7 +90,7 @@ async function executarCotacao(email, senha, cidade = 'Teresina - PI') {
     await wait(6000);
     debug.push('ENTRAR');
 
-    // Clica no Hapvida
+    // Clica no Hapvida (logo inicial)
     const hapvidaImg = await page.$('img[src*="hapvida"]');
     if (hapvidaImg) {
       const parent = await hapvidaImg.evaluateHandle(el => el.closest('.clickable-element') || el.parentElement.parentElement);
@@ -95,10 +102,9 @@ async function executarCotacao(email, senha, cidade = 'Teresina - PI') {
 
     console.log('Login concluído!');
 
-    // ========== FASE 2: FORMULÁRIO ==========
+    // ========== FASE 2: FORMULÁRIO INICIAL ==========
     console.log('\n=== FASE 2: FORMULÁRIO ===');
 
-    // Vai para página do Hapvida
     await page.goto('https://app.cotadorsimplificado.com.br/?produto=hap', {
       waitUntil: 'domcontentloaded',
       timeout: 60000
@@ -140,297 +146,363 @@ async function executarCotacao(email, senha, cidade = 'Teresina - PI') {
     console.log('Avançar 1 clicado');
     debug.push('AV1');
 
-    // Preenche cidade
-    await page.waitForSelector('#cidade_nome', { timeout: 10000 });
-    const cidadeInput = await page.$('#cidade_nome');
-    if (cidadeInput) {
-      await cidadeInput.click();
-      await wait(500);
-      await cidadeInput.type('teresina', { delay: 100 });
-      console.log('Cidade digitada: teresina');
-    }
+    // ========== LOOP DE CIDADES ==========
+    for (let cidadeIndex = 0; cidadeIndex < cidades.length; cidadeIndex++) {
+      const cidadeCompleta = cidades[cidadeIndex];
+      // Extrai nome da cidade (ex: "Teresina - PI" -> "teresina")
+      const cidadeBusca = cidadeCompleta.split(' - ')[0].toLowerCase().trim();
+      const cidadeNome = cidadeCompleta.split(' - ')[0].trim();
 
-    // Espera o dropdown filtrar
-    console.log('Aguardando dropdown filtrar para Teresina...');
-    await wait(2000);
+      console.log(`\n${'#'.repeat(50)}`);
+      console.log(`# CIDADE ${cidadeIndex + 1}/${cidades.length}: ${cidadeCompleta}`);
+      console.log(`${'#'.repeat(50)}`);
+      debug.push(`CIDADE:${cidadeNome}`);
 
-    // Pega as coordenadas do elemento clickable-element com Teresina e clica
-    const teresinaCoords = await page.evaluate(() => {
-      const clickables = document.querySelectorAll('.clickable-element');
-      for (const el of clickables) {
-        if (el.textContent.trim() === 'Teresina - PI') {
-          const rect = el.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0) {
-            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+      // Limpa e preenche cidade
+      if (cidadeIndex > 0) {
+        const cidadeInput = await page.$('#cidade_nome');
+        if (cidadeInput) {
+          await cidadeInput.click({ clickCount: 3 });
+          await page.keyboard.press('Backspace');
+          await wait(500);
+        }
+      }
+
+      await page.waitForSelector('#cidade_nome', { timeout: 10000 });
+      const cidadeInput = await page.$('#cidade_nome');
+      if (cidadeInput) {
+        await cidadeInput.click();
+        await wait(500);
+        await cidadeInput.type(cidadeBusca, { delay: 100 });
+        console.log(`Cidade digitada: ${cidadeBusca}`);
+      }
+
+      await wait(2000);
+
+      // Clica na cidade do dropdown
+      const cidadeCoords = await page.evaluate((seletor) => {
+        const clickables = document.querySelectorAll('.clickable-element');
+        for (const el of clickables) {
+          if (el.textContent.trim() === seletor) {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+            }
           }
         }
-      }
-      return null;
-    });
+        return null;
+      }, cidadeCompleta);
 
-    if (teresinaCoords) {
-      console.log('Clicando via page.mouse.click()...');
-      await page.mouse.click(teresinaCoords.x, teresinaCoords.y);
-      console.log('Cidade clicada via mouse');
-    }
-    await wait(2000);
-    debug.push('CIDADE');
-
-    // Seleciona empresa MEI
-    console.log('\nSelecionando empresa MEI...');
-    try {
-      await page.waitForSelector('select.Dropdown', { timeout: 5000 });
-      await page.click('select.Dropdown');
-      await wait(500);
-      await page.select('select.Dropdown', '"mei___empres_rio_individual"');
-      console.log('MEI selecionado');
-    } catch(e) {
-      console.log('Erro ao selecionar MEI:', e.message);
-    }
-    await wait(1500);
-    debug.push('MEI');
-
-    // Clica Avançar 2 (botão VISÍVEL)
-    console.log('\nClicando Avançar 2...');
-    const buttons2 = await page.$$('button');
-    for (const btn of buttons2) {
-      const info = await page.evaluate(el => {
-        const style = window.getComputedStyle(el);
-        return {
-          text: el.textContent,
-          display: style.display,
-          visibility: style.visibility
+      if (cidadeCoords) {
+        await page.mouse.click(cidadeCoords.x, cidadeCoords.y);
+        console.log(`${cidadeCompleta} clicada`);
+      } else {
+        console.log(`ERRO: ${cidadeCompleta} não encontrada no dropdown!`);
+        resultados[cidadeCompleta] = {
+          success: false,
+          error: 'Cidade não encontrada no dropdown',
+          faixas: []
         };
-      }, btn);
-      if (info.text && info.text.includes('Avan') && info.display !== 'none' && info.visibility !== 'hidden') {
-        await btn.click();
-        console.log('Avançar 2 clicado');
-        break;
+        continue;
       }
-    }
-    await wait(3000);
-    debug.push('AV2');
+      await wait(2000);
 
-    // ========== FASE 3: FAIXAS ETÁRIAS ==========
-    console.log('\n=== FASE 3: FAIXAS ETÁRIAS ===');
+      // Seleciona empresa MEI
+      try {
+        await page.waitForSelector('select.Dropdown', { timeout: 5000 });
+        await page.click('select.Dropdown');
+        await wait(500);
+        await page.select('select.Dropdown', '"mei___empres_rio_individual"');
+        console.log('MEI selecionado');
+      } catch(e) {
+        console.log('Erro ao selecionar MEI:', e.message);
+      }
+      await wait(1500);
 
-    // Preenche APENAS os inputs de faixas etárias
-    const faixasResult = await page.evaluate(() => {
-      const allInputs = document.querySelectorAll('input');
-      let count = 0;
-
-      [...allInputs].forEach((inp) => {
-        const rect = inp.getBoundingClientRect();
-        const style = window.getComputedStyle(inp);
-        const isVisible = rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
-        const isFaixaInput = inp.placeholder === '0' && inp.className.includes('cocys');
-
-        if (isVisible && !inp.id && isFaixaInput) {
-          inp.focus();
-          inp.value = '1';
-          inp.dispatchEvent(new Event('input', { bubbles: true }));
-          inp.dispatchEvent(new Event('change', { bubbles: true }));
-          count++;
+      // Clica Avançar 2
+      const buttons2 = await page.$$('button');
+      for (const btn of buttons2) {
+        const info = await page.evaluate(el => {
+          const style = window.getComputedStyle(el);
+          return { text: el.textContent, display: style.display, visibility: style.visibility };
+        }, btn);
+        if (info.text && info.text.includes('Avan') && info.display !== 'none' && info.visibility !== 'hidden') {
+          await btn.click();
+          console.log('Avançar 2 clicado');
+          break;
         }
+      }
+      await wait(3000);
+
+      // Preenche faixas etárias
+      const faixasResult = await page.evaluate(() => {
+        const allInputs = document.querySelectorAll('input');
+        let count = 0;
+        [...allInputs].forEach((inp) => {
+          const rect = inp.getBoundingClientRect();
+          const style = window.getComputedStyle(inp);
+          const isVisible = rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+          const isFaixaInput = inp.placeholder === '0' && inp.className.includes('cocys');
+          if (isVisible && !inp.id && isFaixaInput) {
+            inp.focus();
+            inp.value = '1';
+            inp.dispatchEvent(new Event('input', { bubbles: true }));
+            inp.dispatchEvent(new Event('change', { bubbles: true }));
+            count++;
+          }
+        });
+        return count;
+      });
+      console.log('Faixas preenchidas:', faixasResult);
+      await wait(1500);
+
+      // Clica Avançar 3
+      const buttons3 = await page.$$('button');
+      for (const btn of buttons3) {
+        const info = await page.evaluate(el => {
+          const style = window.getComputedStyle(el);
+          return { text: el.textContent, display: style.display, visibility: style.visibility };
+        }, btn);
+        if (info.text && info.text.includes('Avan') && info.display !== 'none' && info.visibility !== 'hidden') {
+          await btn.click();
+          console.log('Avançar 3 clicado');
+          break;
+        }
+      }
+      await wait(4000);
+
+      // Clica em Add Produtos
+      const buttons4 = await page.$$('button');
+      for (const btn of buttons4) {
+        const info = await page.evaluate(el => {
+          const style = window.getComputedStyle(el);
+          return { text: el.textContent.trim(), display: style.display, visibility: style.visibility };
+        }, btn);
+        if (info.text === 'Add Produtos' && info.display !== 'none' && info.visibility !== 'hidden') {
+          await btn.click();
+          console.log('Add Produtos clicado');
+          break;
+        }
+      }
+      await wait(3000);
+
+      // Clica em Hapvida (modal)
+      const hapvidaCoords = await page.evaluate(() => {
+        const clickables = document.querySelectorAll('.clickable-element');
+        for (const el of clickables) {
+          if (el.textContent.trim() === 'Hapvida') {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+            }
+          }
+        }
+        return null;
       });
 
-      return count;
-    });
-    console.log('Faixas preenchidas:', faixasResult);
-    await wait(1500);
-    debug.push('FX:' + faixasResult);
+      if (hapvidaCoords) {
+        await page.mouse.click(hapvidaCoords.x, hapvidaCoords.y);
+        console.log('Hapvida clicado no modal');
+        await wait(3000);
+      } else {
+        // IMPORTANTE: Hapvida não aparece para esta cidade
+        console.log(`⚠️ Hapvida NÃO disponível para ${cidadeCompleta}`);
 
-    // Clica Avançar 3 (botão VISÍVEL)
-    console.log('\nClicando Avançar 3...');
-    const buttons3 = await page.$$('button');
-    for (const btn of buttons3) {
-      const info = await page.evaluate(el => {
-        const style = window.getComputedStyle(el);
-        return {
-          text: el.textContent,
-          display: style.display,
-          visibility: style.visibility
+        // Captura as operadoras disponíveis para informar
+        const operadorasDisponiveis = await page.evaluate(() => {
+          const clickables = document.querySelectorAll('.clickable-element');
+          const ops = [];
+          for (const el of clickables) {
+            const text = el.textContent.trim();
+            if (text.length > 0 && text.length < 50 && !text.includes('Add') && !text.includes('Voltar')) {
+              ops.push(text);
+            }
+          }
+          return ops.slice(0, 10);
+        });
+
+        resultados[cidadeCompleta] = {
+          success: false,
+          error: 'Hapvida não disponível para esta cidade',
+          operadoras_disponiveis: operadorasDisponiveis,
+          faixas: []
         };
-      }, btn);
-      if (info.text && info.text.includes('Avan') && info.display !== 'none' && info.visibility !== 'hidden') {
-        await btn.click();
-        console.log('Avançar 3 clicado');
-        break;
+
+        // Volta para tentar próxima cidade
+        if (cidadeIndex < cidades.length - 1) {
+          // Fecha modal se aberto
+          await page.mouse.click(1200, 400);
+          await wait(1000);
+
+          // Clica Voltar 2x
+          for (let v = 0; v < 2; v++) {
+            await page.evaluate(() => {
+              const buttons = document.querySelectorAll('button');
+              for (const btn of buttons) {
+                const style = window.getComputedStyle(btn);
+                if (btn.textContent.includes('Voltar') && style.display !== 'none') {
+                  btn.click();
+                  return;
+                }
+              }
+            });
+            await wait(2000);
+          }
+        }
+        continue;
       }
-    }
-    await wait(4000);
-    debug.push('AV3');
 
-    // ========== FASE 4: ADD PRODUTOS ==========
-    console.log('\n=== FASE 4: ADD PRODUTOS ===');
+      // Clica na tabela da cidade
+      const tabelaCoords = await page.evaluate((cidadeNome) => {
+        const clickables = document.querySelectorAll('.clickable-element');
+        for (const el of clickables) {
+          const text = el.textContent.trim();
+          if (text.includes(cidadeNome) && text.includes('2') && text.includes('29')) {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, text };
+            }
+          }
+        }
+        // Se não encontrar com nome da cidade, pega primeira tabela disponível
+        for (const el of clickables) {
+          const text = el.textContent.trim();
+          if (text.includes('2') && text.includes('29') && !text.includes('Hapvida')) {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, text };
+            }
+          }
+        }
+        return null;
+      }, cidadeNome);
 
-    const buttons4 = await page.$$('button');
-    for (const btn of buttons4) {
-      const info = await page.evaluate(el => {
-        const style = window.getComputedStyle(el);
-        return {
-          text: el.textContent.trim(),
-          display: style.display,
-          visibility: style.visibility
+      if (tabelaCoords) {
+        await page.mouse.click(tabelaCoords.x, tabelaCoords.y);
+        console.log(`Tabela clicada: ${tabelaCoords.text}`);
+      }
+      await wait(2000);
+
+      // Clica em Ambulatorial
+      const ambulatorialCoords = await page.evaluate(() => {
+        const clickables = document.querySelectorAll('.clickable-element');
+        for (const el of clickables) {
+          if (el.textContent.trim() === 'Ambulatorial') {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+            }
+          }
+        }
+        return null;
+      });
+
+      if (ambulatorialCoords) {
+        await page.mouse.click(ambulatorialCoords.x, ambulatorialCoords.y);
+        console.log('Ambulatorial clicado');
+      }
+      await wait(2000);
+
+      // Clica em "Sem acomodação / Com coparticipação"
+      const acomodacaoCoords = await page.evaluate(() => {
+        const clickables = document.querySelectorAll('.clickable-element');
+        for (const el of clickables) {
+          const text = el.textContent.trim().toLowerCase();
+          if (text.includes('sem acomodação') && text.includes('coparticipação')) {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+            }
+          }
+        }
+        return null;
+      });
+
+      if (acomodacaoCoords) {
+        await page.mouse.click(acomodacaoCoords.x, acomodacaoCoords.y);
+        console.log('Acomodação clicada');
+      }
+      await wait(2000);
+
+      // Fecha modal
+      await page.mouse.click(1200, 400);
+      await wait(3000);
+
+      // Extrai valores das faixas etárias
+      const faixas = await page.evaluate(() => {
+        const nomes = [
+          '0 a 18 anos', '19 a 23 anos', '24 a 28 anos', '29 a 33 anos',
+          '34 a 38 anos', '39 a 43 anos', '44 a 48 anos', '49 a 53 anos',
+          '54 a 58 anos', '59 anos ou mais'
+        ];
+
+        const isVisible = (el) => {
+          const style = window.getComputedStyle(el);
+          const rect = el.getBoundingClientRect();
+          return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
         };
-      }, btn);
-      if (info.text === 'Add Produtos' && info.display !== 'none' && info.visibility !== 'hidden') {
-        await btn.click();
-        console.log('Add Produtos clicado');
-        break;
-      }
-    }
-    await wait(3000);
-    debug.push('ADD');
 
-    // ========== FASE 5: CLICA EM HAPVIDA ==========
-    console.log('\n=== FASE 5: CLICA EM HAPVIDA ===');
+        const valores = [];
+        const valorRegex = /^\d{2,3}[.,]\d{2}$/;
 
-    const hapvidaCoords = await page.evaluate(() => {
-      const clickables = document.querySelectorAll('.clickable-element');
-      for (const el of clickables) {
-        if (el.textContent.trim() === 'Hapvida') {
-          const rect = el.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0) {
-            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+        document.querySelectorAll('div, span').forEach((el) => {
+          if (isVisible(el) && el.textContent.length < 15) {
+            const text = el.textContent.trim();
+            if (valorRegex.test(text) && !valores.some(v => v.text === text)) {
+              const rect = el.getBoundingClientRect();
+              valores.push({ text, y: rect.y, x: rect.x });
+            }
           }
-        }
-      }
-      return null;
-    });
+        });
 
-    if (hapvidaCoords) {
-      await page.mouse.click(hapvidaCoords.x, hapvidaCoords.y);
-      console.log('Hapvida clicado');
-    }
-    await wait(3000);
-    debug.push('HAP_MODAL');
+        valores.sort((a, b) => a.y - b.y);
 
-    // ========== FASE 6: ESCOLHER TABELA ==========
-    console.log('\n=== FASE 6: ESCOLHER TABELA ===');
+        return valores.slice(0, 10).map((v, i) => ({
+          faixa_etaria: nomes[i] || `Faixa ${i + 1}`,
+          valor: 'R$ ' + v.text.replace('.', ',')
+        }));
+      });
 
-    const tabelaCoords = await page.evaluate(() => {
-      const clickables = document.querySelectorAll('.clickable-element');
-      for (const el of clickables) {
-        const text = el.textContent.trim();
-        if (text.includes('Teresina') && text.includes('2') && text.includes('29')) {
-          const rect = el.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0) {
-            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-          }
-        }
-      }
-      return null;
-    });
+      console.log(`✅ ${cidadeCompleta}: ${faixas.length} faixas extraídas`);
 
-    if (tabelaCoords) {
-      await page.mouse.click(tabelaCoords.x, tabelaCoords.y);
-      console.log('Tabela clicada');
-    }
-    await wait(2000);
-    debug.push('TABELA');
-
-    // ========== FASE 7: AMBULATORIAL ==========
-    console.log('\n=== FASE 7: CLICA EM AMBULATORIAL ===');
-
-    const ambulatorialCoords = await page.evaluate(() => {
-      const clickables = document.querySelectorAll('.clickable-element');
-      for (const el of clickables) {
-        if (el.textContent.trim() === 'Ambulatorial') {
-          const rect = el.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0) {
-            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-          }
-        }
-      }
-      return null;
-    });
-
-    if (ambulatorialCoords) {
-      await page.mouse.click(ambulatorialCoords.x, ambulatorialCoords.y);
-      console.log('Ambulatorial clicado');
-    }
-    await wait(2000);
-    debug.push('AMBUL');
-
-    // ========== FASE 8: ACOMODAÇÃO ==========
-    console.log('\n=== FASE 8: CLICA EM SEM ACOMODAÇÃO ===');
-
-    const acomodacaoCoords = await page.evaluate(() => {
-      const clickables = document.querySelectorAll('.clickable-element');
-      for (const el of clickables) {
-        const text = el.textContent.trim().toLowerCase();
-        if (text.includes('sem acomodação') && text.includes('coparticipação')) {
-          const rect = el.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0) {
-            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-          }
-        }
-      }
-      return null;
-    });
-
-    if (acomodacaoCoords) {
-      await page.mouse.click(acomodacaoCoords.x, acomodacaoCoords.y);
-      console.log('Acomodação clicada');
-    }
-    await wait(2000);
-    debug.push('ACOMOD');
-
-    // ========== FASE 9: FECHA MODAL ==========
-    console.log('\n=== FASE 9: FECHA O MODAL ===');
-
-    await page.mouse.click(1200, 400);
-    console.log('Clique em espaço vazio executado');
-    await wait(3000);
-    debug.push('FECHA');
-
-    // ========== FASE 10: EXTRAI VALORES ==========
-    console.log('\n=== FASE 10: EXTRAI VALORES ===');
-
-    const faixas = await page.evaluate(() => {
-      const nomes = [
-        '0 a 18 anos', '19 a 23 anos', '24 a 28 anos', '29 a 33 anos',
-        '34 a 38 anos', '39 a 43 anos', '44 a 48 anos', '49 a 53 anos',
-        '54 a 58 anos', '59 anos ou mais'
-      ];
-
-      const isVisible = (el) => {
-        const style = window.getComputedStyle(el);
-        const rect = el.getBoundingClientRect();
-        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+      resultados[cidadeCompleta] = {
+        success: true,
+        faixas
       };
 
-      const valores = [];
-      const valorRegex = /^\d{2,3}[.,]\d{2}$/;
+      // Aguarda para n8n captar
+      await wait(3000);
 
-      document.querySelectorAll('div, span').forEach((el) => {
-        if (isVisible(el) && el.textContent.length < 15) {
-          const text = el.textContent.trim();
-          if (valorRegex.test(text) && !valores.some(v => v.text === text)) {
-            const rect = el.getBoundingClientRect();
-            valores.push({ text, y: rect.y, x: rect.x });
-          }
+      // Se não é a última cidade, volta para página de cidades
+      if (cidadeIndex < cidades.length - 1) {
+        console.log('\n>>> VOLTANDO PARA PRÓXIMA CIDADE <<<');
+
+        // Clica Voltar 2x
+        for (let v = 0; v < 2; v++) {
+          await page.evaluate(() => {
+            const buttons = document.querySelectorAll('button');
+            for (const btn of buttons) {
+              const style = window.getComputedStyle(btn);
+              if (btn.textContent.includes('Voltar') && style.display !== 'none') {
+                btn.click();
+                return;
+              }
+            }
+          });
+          await wait(2000);
         }
-      });
+        console.log('Voltou para página de cidades');
+      }
+    }
 
-      valores.sort((a, b) => a.y - b.y);
-
-      return valores.slice(0, 10).map((v, i) => ({
-        faixa_etaria: nomes[i] || `Faixa ${i + 1}`,
-        valor: 'R$ ' + v.text.replace('.', ',')
-      }));
-    });
-
-    debug.push('V:' + faixas.length);
-    console.log(`\n✅ Extração concluída! ${faixas.length} faixas encontradas.`);
-
+    debug.push('FIM');
     await browser.close();
 
     return {
       success: true,
       debug: debug.join('-'),
-      faixas
+      total_cidades: cidades.length,
+      resultados
     };
 
   } catch (error) {
@@ -442,7 +514,8 @@ async function executarCotacao(email, senha, cidade = 'Teresina - PI') {
     return {
       success: false,
       error: error.message,
-      debug: debug.join('-')
+      debug: debug.join('-'),
+      resultados
     };
   }
 }
