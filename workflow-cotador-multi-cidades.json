@@ -36,6 +36,7 @@
     },
     {
       "parameters": {
+        "batchSize": 1,
         "options": {}
       },
       "id": "loop_cidades",
@@ -65,17 +66,17 @@
       "name": "3-Cotação Puppeteer",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [800, 300]
+      "position": [850, 200]
     },
     {
       "parameters": {
-        "jsCode": "// Formata mensagem WhatsApp para a cidade\nconst input = $input.first().json;\nconst resultados = input.resultados || {};\nconst cidadeKey = Object.keys(resultados)[0];\nconst dados = resultados[cidadeKey] || {};\n\nconst cidade = dados.cidade || cidadeKey || 'Desconhecida';\nconst cidadeIndex = dados.cidade_index || 1;\nconst totalCidades = dados.total_cidades || 1;\nconst success = dados.success || false;\nconst faixas = dados.faixas || [];\nconst error = dados.error || null;\nconst operadoras = dados.operadoras_disponiveis || [];\n\nlet msg = `*📍 COTAÇÃO ${cidadeIndex}/${totalCidades}*\\n`;\nmsg += `*${cidade}*\\n`;\nmsg += `─────────────────────────\\n\\n`;\n\nif (success && faixas.length > 0) {\n  msg += `✅ Cotação Hapvida obtida\\n\\n`;\n  faixas.forEach(f => {\n    msg += `${f.faixa_etaria}: ${f.valor}\\n`;\n  });\n} else {\n  msg += `❌ ${error || 'Hapvida não disponível'}\\n`;\n  if (operadoras.length > 0) {\n    msg += `\\nOperadoras disponíveis:\\n`;\n    operadoras.forEach(op => {\n      msg += `• ${op}\\n`;\n    });\n  }\n}\n\nreturn [{ json: { mensagem: msg } }];"
+        "jsCode": "// Formata mensagem WhatsApp para a cidade\nconst input = $input.first().json;\nconst resultados = input.resultados || {};\nconst cidadeKey = Object.keys(resultados)[0];\nconst dados = resultados[cidadeKey] || {};\n\nconst cidade = dados.cidade || cidadeKey || 'Desconhecida';\nconst success = dados.success || false;\nconst faixas = dados.faixas || [];\nconst error = dados.error || null;\nconst operadoras = dados.operadoras_disponiveis || [];\nconst totalCidades = input.total_cidades || 1;\nconst cidadeIndex = $('2-Loop Cidades').context.currentRunIndex + 1;\n\nlet msg = `*📍 COTAÇÃO ${cidadeIndex}/${totalCidades}*\\n`;\nmsg += `*${cidade}*\\n`;\nmsg += `─────────────────────────\\n\\n`;\n\nif (success && faixas.length > 0) {\n  msg += `✅ Cotação Hapvida obtida\\n\\n`;\n  faixas.forEach(f => {\n    msg += `${f.faixa_etaria}: ${f.valor}\\n`;\n  });\n} else {\n  msg += `❌ ${error || 'Hapvida não disponível'}\\n`;\n  if (operadoras.length > 0) {\n    msg += `\\nOperadoras disponíveis:\\n`;\n    operadoras.forEach(op => {\n      msg += `• ${op}\\n`;\n    });\n  }\n}\n\nreturn [{ json: { mensagem: msg } }];"
       },
       "id": "formatar_msg",
       "name": "4-Formatar Mensagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1000, 300]
+      "position": [1100, 200]
     },
     {
       "parameters": {
@@ -97,7 +98,15 @@
       "name": "5-Enviar WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1200, 300]
+      "position": [1350, 200]
+    },
+    {
+      "parameters": {},
+      "id": "no_op",
+      "name": "Fim",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [850, 400]
     }
   ],
   "connections": {
@@ -110,7 +119,7 @@
     "2-Loop Cidades": {
       "main": [
         [{"node": "3-Cotação Puppeteer", "type": "main", "index": 0}],
-        []
+        [{"node": "Fim", "type": "main", "index": 0}]
       ]
     },
     "3-Cotação Puppeteer": {
@@ -127,7 +136,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "multi-cidades-v4-loop",
+  "versionId": "multi-cidades-v5-loop-fix",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "local"
