@@ -1,0 +1,56 @@
+{
+  "name": "Cotador Hapvida - v10 TIMING (diagnóstico)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Executar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-docker.32vkgz.easypanel.host/function",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"code\": \"export default async function ({ page }) {\\n  const EMAIL = 'jessicamendesbarbosa5@gmail.com';\\n  const SENHA = 'amovoced28';\\n  const w = (ms) => new Promise(r => setTimeout(r, ms));\\n  const t = [];\\n  const mark = (label) => t.push(label + ':' + Math.round((Date.now() - start)/1000) + 's');\\n  const start = Date.now();\\n  try {\\n    await page.setViewport({ width: 1280, height: 800 });\\n    mark('viewport');\\n    await page.goto('https://app.cotadorsimplificado.com.br/login', { waitUntil: 'networkidle2', timeout: 20000 });\\n    mark('goto');\\n    const eInp = await page.$('#email_principal');\\n    if (eInp) { await eInp.click(); await eInp.type(EMAIL, { delay: 10 }); }\\n    mark('email');\\n    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('Continuar com Email')); if(b) b.click(); });\\n    mark('btnCont');\\n    await page.waitForSelector('#pwdInput', { timeout: 8000 });\\n    mark('waitPwd');\\n    const sInp = await page.$('#pwdInput');\\n    if (sInp) { await sInp.click(); await sInp.type(SENHA, { delay: 10 }); }\\n    mark('senha');\\n    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Entrar'); if(b) b.click(); });\\n    mark('btnEntr');\\n    await w(2500);\\n    mark('waitLogin');\\n    const url = page.url();\\n    mark('url');\\n    return { success: true, timing: t.join(' | '), url, total: Math.round((Date.now() - start)/1000) + 's' };\\n  } catch (error) { return { success: false, error: error.message, timing: t.join(' | '), total: Math.round((Date.now() - start)/1000) + 's' }; }\\n}\"\n}",
+        "options": {"timeout": 45000}
+      },
+      "id": "timing-test",
+      "name": "1-TimingTest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{"name": "Content-Type", "value": "application/json"}, {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { number: '5583999471031', text: '*TIMING*\\n' + $json.timing + '\\nTotal: ' + $json.total + '\\nURL: ' + ($json.url || 'N/A') + '\\nErro: ' + ($json.error || 'nenhum') } }}",
+        "options": {}
+      },
+      "id": "whatsapp",
+      "name": "2-WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [600, 300]
+    }
+  ],
+  "connections": {
+    "Executar": { "main": [[{"node": "1-TimingTest", "type": "main", "index": 0}]] },
+    "1-TimingTest": { "main": [[{"node": "2-WhatsApp", "type": "main", "index": 0}]] }
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "10",
+  "meta": {"templateCredsSetupCompleted": true, "instanceId": "local"},
+  "tags": []
+}
