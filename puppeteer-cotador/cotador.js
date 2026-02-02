@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer-core');
+const puppeteer = require('puppeteer');
 
 /**
  * Executa a cotação no Cotador Simplificado
@@ -9,32 +9,9 @@ async function executarCotacao(email, senha, cidade = 'Teresina - PI') {
   let browser;
 
   try {
-    // Encontra o caminho do Chromium
-    const fs = require('fs');
-    const possiblePaths = [
-      process.env.PUPPETEER_EXECUTABLE_PATH,
-      '/usr/bin/chromium',
-      '/usr/bin/chromium-browser',
-      '/usr/bin/google-chrome',
-      '/usr/bin/google-chrome-stable'
-    ].filter(Boolean);
-
-    let executablePath = null;
-    for (const p of possiblePaths) {
-      if (fs.existsSync(p)) {
-        executablePath = p;
-        console.log(`✅ Chromium encontrado em: ${p}`);
-        break;
-      }
-    }
-
-    if (!executablePath) {
-      throw new Error(`Chromium não encontrado. Caminhos testados: ${possiblePaths.join(', ')}`);
-    }
-
-    // Inicia o browser
+    // Inicia o browser (usa Chromium embutido do Puppeteer)
+    console.log('🚀 Iniciando browser...');
     browser = await puppeteer.launch({
-      executablePath,
       headless: 'new',
       args: [
         '--no-sandbox',
