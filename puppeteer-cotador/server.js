@@ -21,8 +21,7 @@ app.get('/status', (req, res) => {
   res.json(status);
 });
 
-// Executar cotação para múltiplas cidades
-// WhatsApp é enviado DIRETO do cotador após cada cidade
+// Executar cotação para múltiplas cidades COM WEBHOOK por cidade
 app.post('/cotacao', async (req, res) => {
   if (status.running) {
     return res.status(429).json({
@@ -36,10 +35,7 @@ app.post('/cotacao', async (req, res) => {
     email = 'jessicamendesbarbosa5@gmail.com',
     senha = 'amovoced28',
     cidades = 'Teresina - PI',
-    // Opcional: sobrescrever configuração do WhatsApp
-    whatsapp_numero,
-    evolution_url,
-    evolution_apikey
+    webhook_url = null  // URL para enviar resultado de cada cidade
   } = req.body || {};
 
   // Converte cidades para array se for string
@@ -52,27 +48,19 @@ app.post('/cotacao', async (req, res) => {
   console.log(`[${new Date().toISOString()}] Iniciando cotação...`);
   console.log(`Email: ${email}`);
   console.log(`Cidades (${cidadesArray.length}):`, cidadesArray);
-  console.log(`WhatsApp: será enviado após cada cidade`);
+  console.log(`Webhook: ${webhook_url || 'não configurado'}`);
   console.log('='.repeat(50));
 
   status.running = true;
   status.lastRun = new Date().toISOString();
 
   try {
-    // Config opcional para sobrescrever Evolution API
-    const config = {};
-    if (whatsapp_numero) config.whatsapp_numero = whatsapp_numero;
-    if (evolution_url) config.evolution_url = evolution_url;
-    if (evolution_apikey) config.evolution_apikey = evolution_apikey;
-
-    const result = await executarCotacao(email, senha, cidadesArray, config);
+    const result = await executarCotacao(email, senha, cidadesArray, webhook_url);
     status.lastResult = result;
     status.running = false;
 
     console.log(`\n✅ Cotação finalizada!`);
-    console.log(`Total de cidades: ${result.total_cidades || 0}`);
-    console.log(`Sucesso: ${result.sucesso || 0}`);
-    console.log(`Falhas: ${result.falhas || 0}`);
+    console.log(`Total de cidades processadas: ${result.total_cidades || 0}`);
 
     res.json(result);
   } catch (error) {
@@ -100,13 +88,20 @@ Endpoints:
   GET  /status  - Status da última execução
   POST /cotacao - Executar cotação
 
-Exemplo (cidades via n8n):
+Exemplo n8n (com webhook por cidade):
   POST http://localhost:${PORT}/cotacao
   Body: {
-    "cidades": "Teresina - PI\\nRecife - PE\\nSalvador - BA"
+    "cidades": "Teresina - PI\\nRecife - PE",
+    "webhook_url": "http://n8n:5678/webhook/cotacao-resultado"
   }
 
-O WhatsApp é enviado AUTOMATICAMENTE após cada cidade!
-Não precisa de webhook nem workflow separado.
+  O webhook receberá após CADA cidade:
+  {
+    "cidade": "Teresina - PI",
+    "cidade_index": 1,
+    "total_cidades": 2,
+    "success": true,
+    "faixas": [...]
+  }
 `);
 });

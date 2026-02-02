@@ -26,6 +26,26 @@
     },
     {
       "parameters": {
+        "jsCode": "// Converte cidades em array de items para o loop\nconst cidadesTexto = $input.first().json.Cidades || '';\nconst cidades = cidadesTexto.split('\\n').map(c => c.trim()).filter(c => c.length > 0);\n\nconst totalCidades = cidades.length;\n\nreturn cidades.map((cidade, index) => ({\n  json: {\n    cidade: cidade,\n    cidade_index: index + 1,\n    total_cidades: totalCidades\n  }\n}));"
+      },
+      "id": "preparar_cidades",
+      "name": "1-Preparar Cidades",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "loop_cidades",
+      "name": "2-Loop Cidades",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "http://evolution_puppeteer-cotador:80/cotacao",
         "sendHeaders": true,
@@ -36,28 +56,78 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"cidades\": $json.Cidades } }}",
+        "jsonBody": "={{ { \"cidades\": $json.cidade } }}",
         "options": {
-          "timeout": 600000
+          "timeout": 300000
         }
       },
       "id": "cotacao_api",
-      "name": "Executar Cotação",
+      "name": "3-Cotação Puppeteer",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [400, 300]
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formata mensagem WhatsApp para a cidade\nconst input = $input.first().json;\nconst resultados = input.resultados || {};\nconst cidadeKey = Object.keys(resultados)[0];\nconst dados = resultados[cidadeKey] || {};\n\nconst cidade = dados.cidade || cidadeKey || 'Desconhecida';\nconst cidadeIndex = dados.cidade_index || 1;\nconst totalCidades = dados.total_cidades || 1;\nconst success = dados.success || false;\nconst faixas = dados.faixas || [];\nconst error = dados.error || null;\nconst operadoras = dados.operadoras_disponiveis || [];\n\nlet msg = `*📍 COTAÇÃO ${cidadeIndex}/${totalCidades}*\\n`;\nmsg += `*${cidade}*\\n`;\nmsg += `─────────────────────────\\n\\n`;\n\nif (success && faixas.length > 0) {\n  msg += `✅ Cotação Hapvida obtida\\n\\n`;\n  faixas.forEach(f => {\n    msg += `${f.faixa_etaria}: ${f.valor}\\n`;\n  });\n} else {\n  msg += `❌ ${error || 'Hapvida não disponível'}\\n`;\n  if (operadoras.length > 0) {\n    msg += `\\nOperadoras disponíveis:\\n`;\n    operadoras.forEach(op => {\n      msg += `• ${op}\\n`;\n    });\n  }\n}\n\nreturn [{ json: { mensagem: msg } }];"
+      },
+      "id": "formatar_msg",
+      "name": "4-Formatar Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "application/json"},
+            {"name": "apikey", "value": "429683C4C977415CAAFCCE10F7D57E11"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"number\": \"5583999471031\", \"text\": $json.mensagem } }}",
+        "options": {}
+      },
+      "id": "whatsapp",
+      "name": "5-Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 300]
     }
   ],
   "connections": {
     "Formulário de Cidades": {
-      "main": [[{"node": "Executar Cotação", "type": "main", "index": 0}]]
+      "main": [[{"node": "1-Preparar Cidades", "type": "main", "index": 0}]]
+    },
+    "1-Preparar Cidades": {
+      "main": [[{"node": "2-Loop Cidades", "type": "main", "index": 0}]]
+    },
+    "2-Loop Cidades": {
+      "main": [
+        [{"node": "3-Cotação Puppeteer", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "3-Cotação Puppeteer": {
+      "main": [[{"node": "4-Formatar Mensagem", "type": "main", "index": 0}]]
+    },
+    "4-Formatar Mensagem": {
+      "main": [[{"node": "5-Enviar WhatsApp", "type": "main", "index": 0}]]
+    },
+    "5-Enviar WhatsApp": {
+      "main": [[{"node": "2-Loop Cidades", "type": "main", "index": 0}]]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "multi-cidades-v3-direto",
+  "versionId": "multi-cidades-v4-loop",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "local"

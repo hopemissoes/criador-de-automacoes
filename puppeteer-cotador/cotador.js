@@ -2,75 +2,30 @@ const puppeteer = require('puppeteer');
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
-// Configuração da Evolution API (WhatsApp)
-const EVOLUTION_API = {
-  url: 'https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos',
-  apikey: '429683C4C977415CAAFCCE10F7D57E11',
-  numero: '5583999471031'
-};
-
-// Função para enviar WhatsApp direto via Evolution API
-async function enviarWhatsApp(mensagem, config = {}) {
-  const url = config.evolution_url || EVOLUTION_API.url;
-  const apikey = config.evolution_apikey || EVOLUTION_API.apikey;
-  const numero = config.whatsapp_numero || EVOLUTION_API.numero;
+// Função para enviar webhook
+async function enviarWebhook(url, dados) {
+  if (!url) return;
 
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': apikey
-      },
-      body: JSON.stringify({
-        number: numero,
-        text: mensagem
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados)
     });
-    console.log(`📱 WhatsApp enviado: ${response.status}`);
-    return true;
+    console.log(`📤 Webhook enviado para ${url}: ${response.status}`);
   } catch (error) {
-    console.error(`❌ Erro ao enviar WhatsApp: ${error.message}`);
-    return false;
+    console.error(`❌ Erro ao enviar webhook: ${error.message}`);
   }
-}
-
-// Formata mensagem de uma cidade
-function formatarMensagemCidade(resultado) {
-  const { cidade, cidade_index, total_cidades, success, faixas, error, operadoras_disponiveis } = resultado;
-
-  let msg = `*📍 COTAÇÃO ${cidade_index}/${total_cidades}*\n`;
-  msg += `*${cidade}*\n`;
-  msg += `${'─'.repeat(25)}\n\n`;
-
-  if (success && faixas && faixas.length > 0) {
-    msg += `✅ Cotação Hapvida obtida\n\n`;
-    faixas.forEach(f => {
-      msg += `${f.faixa_etaria}: ${f.valor}\n`;
-    });
-  } else {
-    msg += `❌ ${error || 'Hapvida não disponível'}\n`;
-    if (operadoras_disponiveis && operadoras_disponiveis.length > 0) {
-      msg += `\nOperadoras disponíveis:\n`;
-      operadoras_disponiveis.forEach(op => {
-        msg += `• ${op}\n`;
-      });
-    }
-  }
-
-  return msg;
 }
 
 /**
  * Executa a cotação no Cotador Simplificado para MÚLTIPLAS CIDADES
- * Envia WhatsApp DIRETO após CADA cidade processada
+ * Envia webhook após CADA cidade processada
  */
-async function executarCotacao(email, senha, cidades = ['Teresina - PI'], config = {}) {
+async function executarCotacao(email, senha, cidades = ['Teresina - PI'], webhookUrl = null) {
   const debug = [];
   const resultados = {};
   let browser;
-  let sucessos = 0;
-  let falhas = 0;
 
   // Garante que cidades é um array
   if (typeof cidades === 'string') {
@@ -79,7 +34,7 @@ async function executarCotacao(email, senha, cidades = ['Teresina - PI'], config
 
   const totalCidades = cidades.length;
   console.log(`🚀 Iniciando cotação para ${totalCidades} cidade(s):`, cidades);
-  console.log(`📱 WhatsApp será enviado após cada cidade`);
+  if (webhookUrl) console.log(`📡 Webhook configurado: ${webhookUrl}`);
 
   try {
     browser = await puppeteer.launch({
@@ -268,7 +223,6 @@ async function executarCotacao(email, senha, cidades = ['Teresina - PI'], config
         if (!cidadeCoords) {
           cidadeResultado.error = 'Cidade não encontrada no dropdown';
           console.log(`ERRO: ${cidadeCompleta} não encontrada!`);
-          falhas++;
         } else {
           await page.mouse.click(cidadeCoords.x, cidadeCoords.y);
           console.log(`${cidadeCompleta} clicada`);
@@ -381,7 +335,6 @@ async function executarCotacao(email, senha, cidades = ['Teresina - PI'], config
 
             cidadeResultado.error = 'Hapvida não disponível para esta cidade';
             cidadeResultado.operadoras_disponiveis = operadorasDisponiveis;
-            falhas++;
           } else {
             await page.mouse.click(hapvidaCoords.x, hapvidaCoords.y);
             console.log('Hapvida clicado no modal');
@@ -499,23 +452,22 @@ async function executarCotacao(email, senha, cidades = ['Teresina - PI'], config
 
             cidadeResultado.success = true;
             cidadeResultado.faixas = faixas;
-            sucessos++;
             console.log(`✅ ${cidadeCompleta}: ${faixas.length} faixas extraídas`);
           }
         }
       } catch (cidadeError) {
         cidadeResultado.error = cidadeError.message;
         console.error(`❌ Erro na cidade ${cidadeCompleta}: ${cidadeError.message}`);
-        falhas++;
       }
 
       // Salva resultado
       resultados[cidadeCompleta] = cidadeResultado;
 
-      // *** ENVIA WHATSAPP DIRETO APÓS CADA CIDADE ***
-      console.log(`\n📱 Enviando WhatsApp para ${cidadeCompleta}...`);
-      const mensagem = formatarMensagemCidade(cidadeResultado);
-      await enviarWhatsApp(mensagem, config);
+      // *** ENVIA WEBHOOK APÓS CADA CIDADE ***
+      if (webhookUrl) {
+        console.log(`\n📤 Enviando resultado de ${cidadeCompleta} via webhook...`);
+        await enviarWebhook(webhookUrl, cidadeResultado);
+      }
 
       // Aguarda
       await wait(2000);
@@ -553,8 +505,6 @@ async function executarCotacao(email, senha, cidades = ['Teresina - PI'], config
       success: true,
       debug: debug.join('-'),
       total_cidades: totalCidades,
-      sucesso: sucessos,
-      falhas: falhas,
       resultados
     };
 
