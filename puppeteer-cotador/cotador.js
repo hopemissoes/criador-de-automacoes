@@ -400,6 +400,8 @@ async function executarCotacao(email, senha, cidades = ['Teresina - PI']) {
       if (ambulatorialCoords) {
         await page.mouse.click(ambulatorialCoords.x, ambulatorialCoords.y);
         console.log('Ambulatorial clicado');
+      } else {
+        console.log('Ambulatorial não encontrado (pode já estar selecionado)');
       }
       await wait(2000);
 
@@ -424,9 +426,22 @@ async function executarCotacao(email, senha, cidades = ['Teresina - PI']) {
       }
       await wait(2000);
 
-      // Fecha modal
-      await page.mouse.click(1200, 400);
-      await wait(3000);
+      // Fecha modal - tenta múltiplas formas
+      console.log('Fechando modal...');
+
+      // Primeiro tenta clicar fora do modal
+      await page.mouse.click(100, 400);
+      await wait(1000);
+
+      // Tenta pressionar Escape
+      await page.keyboard.press('Escape');
+      await wait(1000);
+
+      // Clica em área vazia novamente
+      await page.mouse.click(50, 300);
+      await wait(2000);
+
+      console.log('Modal fechado');
 
       // Extrai valores das faixas etárias
       const faixas = await page.evaluate(() => {
