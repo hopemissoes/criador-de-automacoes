@@ -4,13 +4,13 @@
     {
       "parameters": {
         "formTitle": "Cotador Hapvida",
-        "formDescription": "Digite as cidades para cotação (uma por linha)",
+        "formDescription": "Digite as cidades para cotação (uma por linha). Pode digitar só o nome: Recife, Teresina, etc.",
         "formFields": {
           "values": [
             {
               "fieldLabel": "Cidades",
               "fieldType": "textarea",
-              "placeholder": "Teresina - PI\nRecife - PE\nSalvador - BA",
+              "placeholder": "Recife\nTeresina\nFortaleza",
               "requiredField": true
             }
           ]
@@ -49,7 +49,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Converte resultados em array de items para enviar WhatsApp\nconst input = $input.first().json;\nconst resultados = input.resultados || {};\nconst totalCidades = Object.keys(resultados).length;\n\nconst items = [];\nlet index = 1;\n\nfor (const [cidade, dados] of Object.entries(resultados)) {\n  const success = dados.success || false;\n  const faixas = dados.faixas || [];\n  const error = dados.error || null;\n  const operadoras = dados.operadoras_disponiveis || [];\n\n  let msg = `*📍 COTAÇÃO ${index}/${totalCidades}*\\n`;\n  msg += `*${cidade}*\\n`;\n  msg += `─────────────────────────\\n\\n`;\n\n  if (success && faixas.length > 0) {\n    msg += `✅ Cotação Hapvida obtida\\n\\n`;\n    faixas.forEach(f => {\n      msg += `${f.faixa_etaria}: ${f.valor}\\n`;\n    });\n  } else {\n    msg += `❌ ${error || 'Hapvida não disponível'}\\n`;\n    if (operadoras.length > 0) {\n      msg += `\\nOperadoras disponíveis:\\n`;\n      operadoras.forEach(op => {\n        msg += `• ${op}\\n`;\n      });\n    }\n  }\n\n  items.push({ json: { mensagem: msg, cidade: cidade } });\n  index++;\n}\n\nreturn items;"
+        "jsCode": "// Converte resultados em array de items para enviar WhatsApp em JSON\nconst input = $input.first().json;\nconst resultados = input.resultados || {};\nconst totalCidades = Object.keys(resultados).length;\n\nconst items = [];\nlet index = 1;\n\nfor (const [cidade, dados] of Object.entries(resultados)) {\n  const success = dados.success || false;\n  const faixas = dados.faixas || [];\n  const error = dados.error || null;\n  const operadoras = dados.operadoras_disponiveis || [];\n\n  let msg = `*📍 COTAÇÃO ${index}/${totalCidades}*\\n`;\n  msg += `*${cidade}*\\n`;\n  msg += `─────────────────────────\\n\\n`;\n\n  if (success && faixas.length > 0) {\n    msg += `✅ Cotação Hapvida obtida\\n\\n`;\n    \n    // Adiciona JSON das faixas\n    msg += '```json\\n';\n    msg += JSON.stringify(faixas, null, 2);\n    msg += '\\n```';\n  } else {\n    msg += `❌ ${error || 'Hapvida não disponível'}\\n`;\n    if (operadoras.length > 0) {\n      msg += `\\nOperadoras disponíveis:\\n`;\n      operadoras.forEach(op => {\n        msg += `• ${op}\\n`;\n      });\n    }\n  }\n\n  items.push({ json: { mensagem: msg, cidade: cidade } });\n  index++;\n}\n\nreturn items;"
       },
       "id": "formatar_resultados",
       "name": "2-Formatar Resultados",
@@ -95,7 +95,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "multi-cidades-v6-simples",
+  "versionId": "multi-cidades-v7-json",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "local"
