@@ -38,7 +38,7 @@
           "dataLocationOnSheet": {
             "values": {
               "rangeDefinition": "specifyRange",
-              "range": "A1"
+              "range": "B2"
             }
           }
         }
