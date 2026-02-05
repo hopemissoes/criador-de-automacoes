@@ -38,51 +38,13 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "id": "condition-url",
-              "leftValue": "={{ $json['URL'] }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "isNotEmpty"
-              }
-            },
-            {
-              "id": "condition-status",
-              "leftValue": "={{ $json['Status'] }}",
-              "rightValue": "Concluído",
-              "operator": {
-                "type": "string",
-                "operation": "notEquals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "a1b2c3d4-0003-4000-8000-000000000003",
-      "name": "Filtrar Pendentes",
-      "type": "n8n-nodes-base.filter",
-      "typeVersion": 2,
-      "position": [480, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const url = item.json['URL'] || '';\n  let slug = url.replace(/\\/$/, '').split('/').pop();\n  \n  let cidade = '';\n  const matchCidade = slug.match(/em-(.+)$/);\n  if (matchCidade) {\n    cidade = matchCidade[1]\n      .split('-')\n      .map(p => p.charAt(0).toUpperCase() + p.slice(1))\n      .join(' ');\n  }\n  \n  results.push({\n    json: {\n      ...item.json,\n      slug: slug,\n      cidade: cidade,\n      promocao: item.json['Promoção (%)'] || item.json['Promocao'] || item.json['PROMOÇÃO'] || '0',\n      url_original: url,\n      row_number: item.json['row_number'] || items.indexOf(item) + 2\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const url = item.json['URL'] || '';\n  \n  // Pular linhas sem URL ou já concluídas\n  const status = item.json['Status'] || item.json['STATUS'] || '';\n  if (!url || status === 'Concluído') continue;\n  \n  let slug = url.replace(/\\/$/, '').split('/').pop();\n  \n  let cidade = '';\n  const matchCidade = slug.match(/em-(.+)$/);\n  if (matchCidade) {\n    cidade = matchCidade[1]\n      .split('-')\n      .map(p => p.charAt(0).toUpperCase() + p.slice(1))\n      .join(' ');\n  }\n  \n  results.push({\n    json: {\n      ...item.json,\n      slug: slug,\n      cidade: cidade,\n      promocao: item.json['Promoção (%)'] || item.json['Promocao'] || item.json['PROMOÇÃO'] || '0',\n      url_original: url,\n      row_number: item.json['row_number'] || items.indexOf(item) + 2\n    }\n  });\n}\n\nreturn results;"
       },
       "id": "a1b2c3d4-0004-4000-8000-000000000004",
       "name": "Extrair Slug e Cidade",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [720, 300]
+      "position": [480, 300]
     },
     {
       "parameters": {
@@ -96,7 +58,7 @@
       "name": "Buscar Post no WordPress",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [960, 300],
+      "position": [720, 300],
       "credentials": {
         "httpBasicAuth": {
           "id": "CONFIGURE_SEU_WP_CREDENTIAL_ID",
@@ -106,36 +68,13 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// CONFIGURAÇÃO - Coloque sua API Key do Gemini aqui\nconst GEMINI_API_KEY = 'SUA_CHAVE_GEMINI_AQUI';\nconst GEMINI_MODEL = 'gemini-3-pro-preview';\n// ============================================\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const posts = item.json;\n  const post = Array.isArray(posts) ? posts[0] : posts;\n  \n  if (!post || !post.id) {\n    results.push({ json: { erro: 'Post não encontrado' } });\n    continue;\n  }\n  \n  const tituloAtual = post.title?.rendered || '';\n  const descricaoAtual = post.excerpt?.rendered?.replace(/<[^>]*>/g, '').trim() || '';\n  const conteudo = post.content?.rendered?.replace(/<[^>]*>/g, '').substring(0, 500) || '';\n  const prevData = $('Extrair Slug e Cidade').first().json;\n  const cidade = prevData?.cidade || '';\n  const promocao = prevData?.promocao || '0';\n  \n  // Montar body do Gemini\n  const geminiBody = {\n    systemInstruction: {\n      parts: [{\n        text: 'Você é um especialista em marketing jurídico e SEO. Reformule títulos e meta descriptions de artigos de advocacia para incluir promoções vigentes. Regras: 1) Título atrativo e profissional com a promoção. 2) Manter palavra-chave principal (área jurídica + cidade). 3) Meta description entre 140-160 caracteres com call-to-action. 4) Tom profissional. 5) Promoção de forma elegante. Responda SEMPRE em JSON: {\"novo_titulo\": \"...\", \"nova_descricao\": \"...\"}'\n      }]\n    },\n    contents: [{\n      role: 'user',\n      parts: [{\n        text: 'Reformule o título e descrição deste artigo do escritório Sales e Santos Advogados. Título atual: ' + tituloAtual + '. Descrição atual: ' + descricaoAtual + '. Cidade: ' + cidade + '. Promoção: ' + promocao + '% de desconto. Contexto: ' + conteudo + '. Gere novo título e descrição em JSON.'\n      }]\n    }],\n    generationConfig: {\n      temperature: 0.7,\n      maxOutputTokens: 500,\n      responseMimeType: 'application/json'\n    }\n  };\n  \n  // Chamar API do Gemini\n  let novoTitulo = '';\n  let novaDescricao = '';\n  \n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url: `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,\n      body: geminiBody,\n      json: true,\n      headers: {\n        'Content-Type': 'application/json'\n      }\n    });\n    \n    const resposta = response.candidates?.[0]?.content?.parts?.[0]?.text || '';\n    const jsonMatch = resposta.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      novoTitulo = parsed.novo_titulo || '';\n      novaDescricao = parsed.nova_descricao || '';\n    }\n  } catch (e) {\n    novoTitulo = 'ERRO: ' + e.message;\n    novaDescricao = '';\n  }\n  \n  results.push({\n    json: {\n      post_id: post.id,\n      novo_titulo: novoTitulo,\n      nova_descricao: novaDescricao,\n      titulo_anterior: tituloAtual,\n      url_original: prevData?.url_original || '',\n      row_number: prevData?.row_number || 0\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "// ============================================\n// CONFIGURAÇÃO\nconst GEMINI_API_KEY = 'SUA_CHAVE_GEMINI_AQUI';\nconst GEMINI_MODEL = 'gemini-3-pro-preview';\nconst WP_USER = 'admin';\nconst WP_APP_PASSWORD = 'SUA_APP_PASSWORD_AQUI';\nconst WP_URL = 'https://salesesantos.adv.br';\n// ============================================\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const posts = item.json;\n  const post = Array.isArray(posts) ? posts[0] : posts;\n  \n  if (!post || !post.id) {\n    results.push({ json: { erro: 'Post não encontrado' } });\n    continue;\n  }\n  \n  const tituloAtual = post.title?.rendered || '';\n  const descricaoAtual = post.excerpt?.rendered?.replace(/<[^>]*>/g, '').trim() || '';\n  const conteudo = post.content?.rendered?.replace(/<[^>]*>/g, '').substring(0, 500) || '';\n  const prevData = $('Extrair Slug e Cidade').first().json;\n  const cidade = prevData?.cidade || '';\n  const promocao = prevData?.promocao || '0';\n  \n  // ---- PASSO 1: Chamar Gemini ----\n  const geminiBody = {\n    systemInstruction: {\n      parts: [{\n        text: 'Você é um especialista em marketing jurídico e SEO. Reformule títulos e meta descriptions de artigos de advocacia para incluir promoções vigentes. Regras: 1) Título atrativo e profissional com a promoção. 2) Manter palavra-chave principal (área jurídica + cidade). 3) Meta description entre 140-160 caracteres com call-to-action. 4) Tom profissional. 5) Promoção de forma elegante. Responda SEMPRE em JSON: {\"novo_titulo\": \"...\", \"nova_descricao\": \"...\"}'\n      }]\n    },\n    contents: [{\n      role: 'user',\n      parts: [{\n        text: 'Reformule o título e descrição deste artigo do escritório Sales e Santos Advogados. Título atual: ' + tituloAtual + '. Descrição atual: ' + descricaoAtual + '. Cidade: ' + cidade + '. Promoção: ' + promocao + '% de desconto. Contexto: ' + conteudo + '. Gere novo título e descrição em JSON.'\n      }]\n    }],\n    generationConfig: {\n      temperature: 0.7,\n      maxOutputTokens: 500,\n      responseMimeType: 'application/json'\n    }\n  };\n  \n  let novoTitulo = '';\n  let novaDescricao = '';\n  let debugGemini = '';\n  \n  try {\n    const geminiResponse = await this.helpers.httpRequest({\n      method: 'POST',\n      url: `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,\n      body: geminiBody,\n      json: true,\n      headers: { 'Content-Type': 'application/json' }\n    });\n    \n    const resposta = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';\n    debugGemini = resposta;\n    \n    // Tentar parsear JSON da resposta\n    let parsed = null;\n    try {\n      parsed = JSON.parse(resposta);\n    } catch (_) {\n      const jsonMatch = resposta.match(/\\{[\\s\\S]*\\}/);\n      if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);\n    }\n    \n    if (parsed) {\n      // Aceitar múltiplas chaves possíveis\n      novoTitulo = parsed.novo_titulo || parsed.title || parsed.titulo || parsed.new_title || '';\n      novaDescricao = parsed.nova_descricao || parsed.description || parsed.descricao || parsed.meta_description || parsed.new_description || '';\n    }\n  } catch (e) {\n    novoTitulo = 'ERRO GEMINI: ' + e.message;\n    debugGemini = e.message;\n  }\n  \n  // ---- PASSO 2: Atualizar WordPress ----\n  let wpStatus = 'erro';\n  \n  if (novoTitulo && !novoTitulo.startsWith('ERRO')) {\n    try {\n      const auth = Buffer.from(WP_USER + ':' + WP_APP_PASSWORD).toString('base64');\n      await this.helpers.httpRequest({\n        method: 'POST',\n        url: `${WP_URL}/wp-json/wp/v2/posts/${post.id}`,\n        body: {\n          title: novoTitulo,\n          excerpt: novaDescricao\n        },\n        json: true,\n        headers: {\n          'Content-Type': 'application/json',\n          'Authorization': 'Basic ' + auth\n        }\n      });\n      wpStatus = 'ok';\n    } catch (e) {\n      wpStatus = 'ERRO WP: ' + e.message;\n    }\n  }\n  \n  results.push({\n    json: {\n      post_id: post.id,\n      novo_titulo: novoTitulo,\n      nova_descricao: novaDescricao,\n      titulo_anterior: tituloAtual,\n      url_original: prevData?.url_original || '',\n      row_number: prevData?.row_number || 0,\n      wp_status: wpStatus,\n      debug_gemini: debugGemini\n    }\n  });\n}\n\nreturn results;"
       },
       "id": "a1b2c3d4-0006-4000-8000-000000000006",
-      "name": "Chamar Gemini e Processar",
+      "name": "Gemini + Atualizar WordPress",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1200, 300]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "=https://salesesantos.adv.br/wp-json/wp/v2/posts/{{ $json.post_id }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpBasicAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"title\": \"{{ $json.novo_titulo }}\",\n  \"excerpt\": \"{{ $json.nova_descricao }}\"\n}",
-        "options": {}
-      },
-      "id": "a1b2c3d4-0009-4000-8000-000000000009",
-      "name": "Atualizar Post WordPress",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1440, 300],
-      "credentials": {
-        "httpBasicAuth": {
-          "id": "CONFIGURE_SEU_WP_CREDENTIAL_ID",
-          "name": "WordPress Basic Auth"
-        }
-      }
+      "position": [960, 300]
     },
     {
       "parameters": {
@@ -164,7 +103,7 @@
       "name": "Atualizar Planilha - Concluído",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [1680, 300],
+      "position": [1200, 300],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "CONFIGURE_SEU_GOOGLE_CREDENTIAL_ID",
@@ -186,17 +125,6 @@
       ]
     },
     "Ler Planilha Google": {
-      "main": [
-        [
-          {
-            "node": "Filtrar Pendentes",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Filtrar Pendentes": {
       "main": [
         [
           {
@@ -222,25 +150,14 @@
       "main": [
         [
           {
-            "node": "Chamar Gemini e Processar",
+            "node": "Gemini + Atualizar WordPress",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Chamar Gemini e Processar": {
-      "main": [
-        [
-          {
-            "node": "Atualizar Post WordPress",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Atualizar Post WordPress": {
+    "Gemini + Atualizar WordPress": {
       "main": [
         [
           {
@@ -272,5 +189,5 @@
   ],
   "triggerCount": 0,
   "updatedAt": "2026-02-05T00:00:00.000Z",
-  "versionId": "2"
+  "versionId": "3"
 }
