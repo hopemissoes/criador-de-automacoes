@@ -56,7 +56,7 @@
             },
             {
               "id": "condition-status",
-              "leftValue": "={{ $json['STATUS'] }}",
+              "leftValue": "={{ $json['Status'] }}",
               "rightValue": "Concluído",
               "operator": {
                 "type": "string",
