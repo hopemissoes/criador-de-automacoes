@@ -1,0 +1,340 @@
+{
+  "name": "WordPress - Atualizar Artigos com Promoções",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Início Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{$json.sheet_url || ''}}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Ler Planilha Google",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [240, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CONFIGURE_SEU_GOOGLE_CREDENTIAL_ID",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-url",
+              "leftValue": "={{ $json['URL'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            },
+            {
+              "id": "condition-status",
+              "leftValue": "={{ $json['Status'] }}",
+              "rightValue": "Concluído",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Filtrar Pendentes",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const url = item.json['URL'] || '';\n  \n  // Extrair slug da URL\n  // Ex: https://salesesantos.adv.br/advogado-trabalhista-em-sao-paulo/\n  let slug = url.replace(/\\/$/, '').split('/').pop();\n  \n  // Extrair cidade do slug (após 'em-')\n  let cidade = '';\n  const matchCidade = slug.match(/em-(.+)$/);\n  if (matchCidade) {\n    cidade = matchCidade[1]\n      .split('-')\n      .map(p => p.charAt(0).toUpperCase() + p.slice(1))\n      .join(' ');\n  }\n  \n  results.push({\n    json: {\n      ...item.json,\n      slug: slug,\n      cidade: cidade,\n      promocao: item.json['Promoção (%)'] || item.json['Promocao'] || '0',\n      url_original: url,\n      row_number: item.json['row_number'] || items.indexOf(item) + 2\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Extrair Slug e Cidade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://salesesantos.adv.br/wp-json/wp/v2/posts?slug={{ $json.slug }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "name": "Buscar Post no WordPress",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 300],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "CONFIGURE_SEU_WP_CREDENTIAL_ID",
+          "name": "WordPress Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const posts = item.json;\n  \n  // A API retorna um array; pegar o primeiro post\n  const post = Array.isArray(posts) ? posts[0] : posts;\n  \n  if (!post || !post.id) {\n    results.push({\n      json: {\n        erro: 'Post não encontrado',\n        slug: item.json.slug || 'desconhecido'\n      }\n    });\n    continue;\n  }\n  \n  // Extrair texto limpo do título e excerpt\n  const tituloAtual = post.title?.rendered || '';\n  const descricaoAtual = post.excerpt?.rendered?.replace(/<[^>]*>/g, '').trim() || '';\n  const conteudo = post.content?.rendered?.replace(/<[^>]*>/g, '').substring(0, 500) || '';\n  \n  // Recuperar dados da planilha via input anterior\n  const prevData = $('Extrair Slug e Cidade').first().json;\n  \n  results.push({\n    json: {\n      post_id: post.id,\n      titulo_atual: tituloAtual,\n      descricao_atual: descricaoAtual,\n      conteudo_resumo: conteudo,\n      slug: prevData?.slug || '',\n      cidade: prevData?.cidade || '',\n      promocao: prevData?.promocao || '0',\n      url_original: prevData?.url_original || '',\n      row_number: prevData?.row_number || 0\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "a1b2c3d4-0006-4000-8000-000000000006",
+      "name": "Preparar Dados para IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Você é um especialista em marketing jurídico e SEO. Seu trabalho é reformular títulos e meta descriptions de artigos de um escritório de advocacia para incluir promoções vigentes.\n\nRegras:\n1. O título deve ser atrativo, profissional e incluir a promoção de forma natural\n2. O título deve manter a palavra-chave principal (área jurídica + cidade)\n3. A meta description deve ter entre 140-160 caracteres\n4. A meta description deve incluir a promoção e um call-to-action\n5. Mantenha o tom profissional - é um escritório de advocacia\n6. Use a promoção de forma elegante, sem parecer apelativo\n\nResponda SEMPRE em formato JSON com esta estrutura exata:\n{\n  \"novo_titulo\": \"...\",\n  \"nova_descricao\": \"...\"\n}"
+            },
+            {
+              "role": "user",
+              "content": "=Reformule o título e a descrição deste artigo do escritório Sales e Santos Advogados:\n\n**Título atual:** {{ $json.titulo_atual }}\n**Descrição atual:** {{ $json.descricao_atual }}\n**Cidade:** {{ $json.cidade }}\n**Promoção vigente:** {{ $json.promocao }}% de desconto\n\nContexto do artigo (primeiros 500 caracteres):\n{{ $json.conteudo_resumo }}\n\nGere o novo título e nova descrição em formato JSON."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 500
+        }
+      },
+      "id": "a1b2c3d4-0007-4000-8000-000000000007",
+      "name": "IA - Reformular Título",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [1440, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "CONFIGURE_SEU_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  let resposta = item.json.message?.content || item.json.text || item.json.output || '';\n  \n  // Tentar extrair JSON da resposta da IA\n  let novoTitulo = '';\n  let novaDescricao = '';\n  \n  try {\n    // Procurar JSON na resposta\n    const jsonMatch = resposta.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      novoTitulo = parsed.novo_titulo || '';\n      novaDescricao = parsed.nova_descricao || '';\n    }\n  } catch (e) {\n    // Se não conseguir parsear, usar resposta como título\n    novoTitulo = resposta.substring(0, 100);\n    novaDescricao = resposta.substring(0, 160);\n  }\n  \n  const prevData = $('Preparar Dados para IA').first().json;\n  \n  results.push({\n    json: {\n      post_id: prevData?.post_id || item.json.post_id,\n      novo_titulo: novoTitulo,\n      nova_descricao: novaDescricao,\n      titulo_anterior: prevData?.titulo_atual || '',\n      url_original: prevData?.url_original || '',\n      row_number: prevData?.row_number || 0,\n      cidade: prevData?.cidade || '',\n      promocao: prevData?.promocao || '0'\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "a1b2c3d4-0008-4000-8000-000000000008",
+      "name": "Processar Resposta da IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://salesesantos.adv.br/wp-json/wp/v2/posts/{{ $json.post_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"{{ $json.novo_titulo }}\",\n  \"excerpt\": \"{{ $json.nova_descricao }}\"\n}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0009-4000-8000-000000000009",
+      "name": "Atualizar Post WordPress",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1920, 300],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "CONFIGURE_SEU_WP_CREDENTIAL_ID",
+          "name": "WordPress Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{$json.sheet_url || ''}}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Concluído",
+            "Novo Título": "={{ $json.novo_titulo }}",
+            "Nova Descrição": "={{ $json.nova_descricao }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0010-4000-8000-000000000010",
+      "name": "Atualizar Planilha - Concluído",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2160, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CONFIGURE_SEU_GOOGLE_CREDENTIAL_ID",
+          "name": "Google Sheets Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Início Manual": {
+      "main": [
+        [
+          {
+            "node": "Ler Planilha Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Planilha Google": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Pendentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Pendentes": {
+      "main": [
+        [
+          {
+            "node": "Extrair Slug e Cidade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Slug e Cidade": {
+      "main": [
+        [
+          {
+            "node": "Buscar Post no WordPress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Post no WordPress": {
+      "main": [
+        [
+          {
+            "node": "Preparar Dados para IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Dados para IA": {
+      "main": [
+        [
+          {
+            "node": "IA - Reformular Título",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA - Reformular Título": {
+      "main": [
+        [
+          {
+            "node": "Processar Resposta da IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Resposta da IA": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Post WordPress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Post WordPress": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Planilha - Concluído",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "wordpress"
+    },
+    {
+      "name": "automacao"
+    },
+    {
+      "name": "promocoes"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2026-02-05T00:00:00.000Z",
+  "versionId": "1"
+}
