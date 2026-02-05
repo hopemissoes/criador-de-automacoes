@@ -16,7 +16,7 @@ Planilha Google → Filtrar Pendentes → Extrair Slug → Buscar Post no WP →
 4. **Extrair Slug e Cidade** - Pega o slug e cidade da URL do artigo
 5. **Buscar Post no WordPress** - Consulta a API REST do WP pelo slug
 6. **Preparar Dados para IA** - Organiza título atual, descrição e % da promoção
-7. **IA - Reformular Título** - Envia para GPT-4o-mini reformular com a promoção
+7. **IA - Reformular Título (Gemini)** - Envia para Google Gemini 3 Pro reformular com a promoção
 8. **Processar Resposta da IA** - Extrai o novo título e descrição do JSON
 9. **Atualizar Post WordPress** - Atualiza o artigo via API REST
 10. **Atualizar Planilha - Concluído** - Marca a linha como "Concluído"
@@ -44,10 +44,11 @@ Você precisa criar 3 credenciais no n8n:
 - Siga o processo de autenticação com sua conta Google
 - Associe aos nodes: "Ler Planilha Google" e "Atualizar Planilha - Concluído"
 
-#### OpenAI API
-- Vá em **Credentials** → **New Credential** → **OpenAI API**
-- Cole sua **API Key** da OpenAI
-- Associe ao node: "IA - Reformular Título"
+#### Google Gemini API (HTTP Query Auth)
+- Vá em **Credentials** → **New Credential** → **HTTP Query Auth**
+- **Name:** `key`
+- **Value:** sua API Key do Google Gemini
+- Associe ao node: "IA - Reformular Título (Gemini)"
 
 ### 3. Configurar a Planilha Google
 
@@ -85,13 +86,14 @@ Veja o arquivo `planilha-exemplo.csv` para referência.
 
 ### Trocar o modelo de IA
 
-No node **"IA - Reformular Título"**, você pode alterar:
-- `model`: Trocar para `gpt-4o`, `gpt-3.5-turbo`, ou outro modelo
-- `temperature`: Ajustar criatividade (0.3 = conservador, 0.9 = criativo)
+No node **"IA - Reformular Título (Gemini)"**, na URL, você pode trocar o modelo:
+- `gemini-3-pro` (atual) - Mais inteligente, melhor qualidade
+- `gemini-2.0-flash` - Mais rápido e econômico
+- `temperature`: Ajustar no body JSON (0.3 = conservador, 0.9 = criativo)
 
 ### Ajustar o prompt da IA
 
-O prompt está no node **"IA - Reformular Título"** na mensagem de sistema. Você pode personalizar as regras de reformulação conforme seu estilo.
+O prompt está no node **"IA - Reformular Título (Gemini)"** no campo `systemInstruction` do body JSON. Você pode personalizar as regras de reformulação conforme seu estilo.
 
 ### Agendar execução automática
 
