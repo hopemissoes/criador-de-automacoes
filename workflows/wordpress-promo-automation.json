@@ -76,7 +76,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const url = item.json['URL'] || '';\n  \n  // Extrair slug da URL\n  // Ex: https://salesesantos.adv.br/advogado-trabalhista-em-sao-paulo/\n  let slug = url.replace(/\\/$/, '').split('/').pop();\n  \n  // Extrair cidade do slug (após 'em-')\n  let cidade = '';\n  const matchCidade = slug.match(/em-(.+)$/);\n  if (matchCidade) {\n    cidade = matchCidade[1]\n      .split('-')\n      .map(p => p.charAt(0).toUpperCase() + p.slice(1))\n      .join(' ');\n  }\n  \n  results.push({\n    json: {\n      ...item.json,\n      slug: slug,\n      cidade: cidade,\n      promocao: item.json['Promoção (%)'] || item.json['Promocao'] || '0',\n      url_original: url,\n      row_number: item.json['row_number'] || items.indexOf(item) + 2\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const url = item.json['URL'] || '';\n  let slug = url.replace(/\\/$/, '').split('/').pop();\n  \n  let cidade = '';\n  const matchCidade = slug.match(/em-(.+)$/);\n  if (matchCidade) {\n    cidade = matchCidade[1]\n      .split('-')\n      .map(p => p.charAt(0).toUpperCase() + p.slice(1))\n      .join(' ');\n  }\n  \n  results.push({\n    json: {\n      ...item.json,\n      slug: slug,\n      cidade: cidade,\n      promocao: item.json['Promoção (%)'] || item.json['Promocao'] || item.json['PROMOÇÃO'] || '0',\n      url_original: url,\n      row_number: item.json['row_number'] || items.indexOf(item) + 2\n    }\n  });\n}\n\nreturn results;"
       },
       "id": "a1b2c3d4-0004-4000-8000-000000000004",
       "name": "Extrair Slug e Cidade",
@@ -106,47 +106,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const posts = item.json;\n  const post = Array.isArray(posts) ? posts[0] : posts;\n  \n  if (!post || !post.id) {\n    results.push({\n      json: {\n        erro: 'Post não encontrado',\n        slug: item.json.slug || 'desconhecido'\n      }\n    });\n    continue;\n  }\n  \n  const tituloAtual = post.title?.rendered || '';\n  const descricaoAtual = post.excerpt?.rendered?.replace(/<[^>]*>/g, '').trim() || '';\n  const conteudo = post.content?.rendered?.replace(/<[^>]*>/g, '').substring(0, 500) || '';\n  const prevData = $('Extrair Slug e Cidade').first().json;\n  const cidade = prevData?.cidade || '';\n  const promocao = prevData?.promocao || '0';\n  \n  // Montar body do Gemini aqui para evitar problemas com caracteres especiais no JSON\n  const geminiBody = {\n    systemInstruction: {\n      parts: [{\n        text: 'Você é um especialista em marketing jurídico e SEO. Seu trabalho é reformular títulos e meta descriptions de artigos de um escritório de advocacia para incluir promoções vigentes.\\n\\nRegras:\\n1. O título deve ser atrativo, profissional e incluir a promoção de forma natural\\n2. O título deve manter a palavra-chave principal (área jurídica + cidade)\\n3. A meta description deve ter entre 140-160 caracteres\\n4. A meta description deve incluir a promoção e um call-to-action\\n5. Mantenha o tom profissional - é um escritório de advocacia\\n6. Use a promoção de forma elegante, sem parecer apelativo\\n\\nResponda SEMPRE em formato JSON com esta estrutura exata:\\n{\\n  \"novo_titulo\": \"...\",\\n  \"nova_descricao\": \"...\"\\n}'\n      }]\n    },\n    contents: [{\n      role: 'user',\n      parts: [{\n        text: `Reformule o título e a descrição deste artigo do escritório Sales e Santos Advogados:\\n\\nTítulo atual: ${tituloAtual}\\nDescrição atual: ${descricaoAtual}\\nCidade: ${cidade}\\nPromoção vigente: ${promocao}% de desconto\\n\\nContexto do artigo (primeiros 500 caracteres):\\n${conteudo}\\n\\nGere o novo título e nova descrição em formato JSON.`\n      }]\n    }],\n    generationConfig: {\n      temperature: 0.7,\n      maxOutputTokens: 500,\n      responseMimeType: 'application/json'\n    }\n  };\n  \n  results.push({\n    json: {\n      post_id: post.id,\n      titulo_atual: tituloAtual,\n      descricao_atual: descricaoAtual,\n      conteudo_resumo: conteudo,\n      slug: prevData?.slug || '',\n      cidade: cidade,\n      promocao: promocao,\n      url_original: prevData?.url_original || '',\n      row_number: prevData?.row_number || 0,\n      geminiBodyStr: JSON.stringify(geminiBody)\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "// ============================================\n// CONFIGURAÇÃO - Coloque sua API Key do Gemini aqui\nconst GEMINI_API_KEY = 'SUA_CHAVE_GEMINI_AQUI';\nconst GEMINI_MODEL = 'gemini-3-pro';\n// ============================================\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const posts = item.json;\n  const post = Array.isArray(posts) ? posts[0] : posts;\n  \n  if (!post || !post.id) {\n    results.push({ json: { erro: 'Post não encontrado' } });\n    continue;\n  }\n  \n  const tituloAtual = post.title?.rendered || '';\n  const descricaoAtual = post.excerpt?.rendered?.replace(/<[^>]*>/g, '').trim() || '';\n  const conteudo = post.content?.rendered?.replace(/<[^>]*>/g, '').substring(0, 500) || '';\n  const prevData = $('Extrair Slug e Cidade').first().json;\n  const cidade = prevData?.cidade || '';\n  const promocao = prevData?.promocao || '0';\n  \n  // Montar body do Gemini\n  const geminiBody = {\n    systemInstruction: {\n      parts: [{\n        text: 'Você é um especialista em marketing jurídico e SEO. Reformule títulos e meta descriptions de artigos de advocacia para incluir promoções vigentes. Regras: 1) Título atrativo e profissional com a promoção. 2) Manter palavra-chave principal (área jurídica + cidade). 3) Meta description entre 140-160 caracteres com call-to-action. 4) Tom profissional. 5) Promoção de forma elegante. Responda SEMPRE em JSON: {\"novo_titulo\": \"...\", \"nova_descricao\": \"...\"}'\n      }]\n    },\n    contents: [{\n      role: 'user',\n      parts: [{\n        text: 'Reformule o título e descrição deste artigo do escritório Sales e Santos Advogados. Título atual: ' + tituloAtual + '. Descrição atual: ' + descricaoAtual + '. Cidade: ' + cidade + '. Promoção: ' + promocao + '% de desconto. Contexto: ' + conteudo + '. Gere novo título e descrição em JSON.'\n      }]\n    }],\n    generationConfig: {\n      temperature: 0.7,\n      maxOutputTokens: 500,\n      responseMimeType: 'application/json'\n    }\n  };\n  \n  // Chamar API do Gemini\n  let novoTitulo = '';\n  let novaDescricao = '';\n  \n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url: `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,\n      body: geminiBody,\n      json: true,\n      headers: {\n        'Content-Type': 'application/json'\n      }\n    });\n    \n    const resposta = response.candidates?.[0]?.content?.parts?.[0]?.text || '';\n    const jsonMatch = resposta.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      novoTitulo = parsed.novo_titulo || '';\n      novaDescricao = parsed.nova_descricao || '';\n    }\n  } catch (e) {\n    novoTitulo = 'ERRO: ' + e.message;\n    novaDescricao = '';\n  }\n  \n  results.push({\n    json: {\n      post_id: post.id,\n      novo_titulo: novoTitulo,\n      nova_descricao: novaDescricao,\n      titulo_anterior: tituloAtual,\n      url_original: prevData?.url_original || '',\n      row_number: prevData?.row_number || 0\n    }\n  });\n}\n\nreturn results;"
       },
       "id": "a1b2c3d4-0006-4000-8000-000000000006",
-      "name": "Preparar Dados para IA",
+      "name": "Chamar Gemini e Processar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1200, 300]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro:generateContent",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpQueryAuth",
-        "sendBody": true,
-        "specifyBody": "string",
-        "body": "={{ $json.geminiBodyStr }}",
-        "contentType": "application/json",
-        "options": {}
-      },
-      "id": "a1b2c3d4-0007-4000-8000-000000000007",
-      "name": "IA - Reformular Título (Gemini)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1440, 300],
-      "credentials": {
-        "httpQueryAuth": {
-          "id": "CONFIGURE_SEU_GEMINI_CREDENTIAL_ID",
-          "name": "Google Gemini API Key"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  let novoTitulo = '';\n  let novaDescricao = '';\n  \n  try {\n    // Extrair texto da resposta do Gemini\n    // Formato: { candidates: [{ content: { parts: [{ text: '...' }] } }] }\n    const candidates = item.json.candidates || [];\n    const textoParts = candidates[0]?.content?.parts || [];\n    let resposta = textoParts[0]?.text || '';\n    \n    // Procurar JSON na resposta\n    const jsonMatch = resposta.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      novoTitulo = parsed.novo_titulo || '';\n      novaDescricao = parsed.nova_descricao || '';\n    }\n  } catch (e) {\n    // Fallback: tentar pegar qualquer texto da resposta\n    const fallback = item.json.candidates?.[0]?.content?.parts?.[0]?.text || '';\n    novoTitulo = fallback.substring(0, 100);\n    novaDescricao = fallback.substring(0, 160);\n  }\n  \n  const prevData = $('Preparar Dados para IA').first().json;\n  \n  results.push({\n    json: {\n      post_id: prevData?.post_id || item.json.post_id,\n      novo_titulo: novoTitulo,\n      nova_descricao: novaDescricao,\n      titulo_anterior: prevData?.titulo_atual || '',\n      url_original: prevData?.url_original || '',\n      row_number: prevData?.row_number || 0,\n      cidade: prevData?.cidade || '',\n      promocao: prevData?.promocao || '0'\n    }\n  });\n}\n\nreturn results;"
-      },
-      "id": "a1b2c3d4-0008-4000-8000-000000000008",
-      "name": "Processar Resposta da IA",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1680, 300]
     },
     {
       "parameters": {
@@ -163,7 +129,7 @@
       "name": "Atualizar Post WordPress",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1920, 300],
+      "position": [1440, 300],
       "credentials": {
         "httpBasicAuth": {
           "id": "CONFIGURE_SEU_WP_CREDENTIAL_ID",
@@ -198,7 +164,7 @@
       "name": "Atualizar Planilha - Concluído",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
-      "position": [2160, 300],
+      "position": [1680, 300],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "CONFIGURE_SEU_GOOGLE_CREDENTIAL_ID",
@@ -256,36 +222,14 @@
       "main": [
         [
           {
-            "node": "Preparar Dados para IA",
+            "node": "Chamar Gemini e Processar",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Preparar Dados para IA": {
-      "main": [
-        [
-          {
-            "node": "IA - Reformular Título (Gemini)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IA - Reformular Título (Gemini)": {
-      "main": [
-        [
-          {
-            "node": "Processar Resposta da IA",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Processar Resposta da IA": {
+    "Chamar Gemini e Processar": {
       "main": [
         [
           {
@@ -328,5 +272,5 @@
   ],
   "triggerCount": 0,
   "updatedAt": "2026-02-05T00:00:00.000Z",
-  "versionId": "1"
+  "versionId": "2"
 }
