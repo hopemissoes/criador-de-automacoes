@@ -41,7 +41,7 @@ for (const item of items) {
     }],
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 500,
+      maxOutputTokens: 4096,
       responseMimeType: 'application/json'
     }
   };
