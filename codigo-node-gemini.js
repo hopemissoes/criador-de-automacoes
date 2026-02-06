@@ -93,7 +93,11 @@ for (const item of items) {
         url: WP_URL + '/wp-json/wp/v2/posts/' + post.id,
         body: {
           title: novoTitulo,
-          excerpt: novaDescricao
+          excerpt: novaDescricao,
+          meta: {
+            rank_math_description: novaDescricao,
+            rank_math_title: novoTitulo
+          }
         },
         json: true,
         headers: {
