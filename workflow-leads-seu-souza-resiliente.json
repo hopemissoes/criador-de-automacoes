@@ -1,0 +1,824 @@
+{
+  "name": "Leads Seu Souza",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "2204b49d-d9c0-4e6e-8981-9a593cbc312f",
+        "options": {}
+      },
+      "id": "dcab6215-2888-45b8-8664-31277d084bee",
+      "name": "Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        416
+      ],
+      "webhookId": "2204b49d-d9c0-4e6e-8981-9a593cbc312f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "429683C4C977415CAAFCCE10F7D57E11"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Webhook1').item.json.body.vendedor_telefone }}\",\n  \"text\": \"*NOVO LEAD P3 - Data: {{ $('Webhook1').item.json.body.data }}*\\n\\n*Nome:* {{ $('Webhook1').item.json.body.name }}\\n*Telefone:* {{ $('Webhook1').item.json.body.telefone }}\\n*Cidade:* {{ $('Webhook1').item.json.body.cidade }}\\n*Plano:* {{ $('Webhook1').item.json.body.qual_plano }}\\n*Qtd Pessoas:* {{ $('Webhook1').item.json.body.qtd_pessoas }}\\n*Idades:* {{ $('Webhook1').item.json.body.idades }}\\n\\n*Id:* {{ $('Webhook1').item.json.body.lead_id }} \"\n}",
+        "options": {}
+      },
+      "id": "eac94cfd-e92d-495c-84de-cf9bb3a4a590",
+      "name": "enviar para vendedor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -176,
+        416
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 30000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "check-error-souza",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f8d1a9bc-1f94-4733-8199-fb749c58eef4",
+      "name": "Erro Evolution Souza?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        80,
+        416
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "sendTo": "netoppcem@gmail.com",
+        "subject": "=ERRO - Falha no envio WhatsApp (Seu Souza) - Lead: {{ $('Webhook1').item.json.body.nome }}",
+        "message": "=Houve uma falha no envio da mensagem WhatsApp para o vendedor (após 5 tentativas automáticas).\n\n{\n  \"number\": \"{{ $('Webhook1').item.json.body.vendedor_telefone }}\",\n  \"text\": \"*NOVO LEAD P3 - Data: {{ $('Webhook1').item.json.body.data }}*\\n\\n*Nome:* {{ $('Webhook1').item.json.body.name }}\\n*Telefone:* {{ $('Webhook1').item.json.body.telefone }}\\n*Cidade:* {{ $('Webhook1').item.json.body.cidade }}\\n*Plano:* {{ $('Webhook1').item.json.body.qual_plano }}\\n*Qtd Pessoas:* {{ $('Webhook1').item.json.body.qtd_pessoas }}\\n*Idades:* {{ $('Webhook1').item.json.body.idades }}\\n\\n*Id:* {{ $('Webhook1').item.json.body.lead_id }} \"\n}",
+        "options": {}
+      },
+      "id": "19a9d995-76ec-4270-9704-f5e2ba364517",
+      "name": "Email Erro Evolution Souza",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        144,
+        48
+      ],
+      "webhookId": "f6bafe0d-1d20-4d31-9d19-f144a1e70821",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5jk75xu92g5FbQik",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Q-GEkj7DuACFVa-glS-5N8Lr2TYj1YW2v1cG4nmWJeI",
+          "mode": "list",
+          "cachedResultName": "Gestão de Leads - DRV",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q-GEkj7DuACFVa-glS-5N8Lr2TYj1YW2v1cG4nmWJeI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q-GEkj7DuACFVa-glS-5N8Lr2TYj1YW2v1cG4nmWJeI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Nome": "={{ $('Webhook1').item.json.body.name }}",
+            "Telefone": "={{ $('Webhook1').item.json.body.telefone }}",
+            "Cidade": "={{ $('Webhook1').item.json.body.cidade }}",
+            "Plano": "={{ $('Webhook1').item.json.body.qual_plano }}",
+            "Data": "={{ $('Webhook1').item.json.body.data }}",
+            "Pagina": "={{ $('Webhook1').item.json.body.pagina_origem }}",
+            "atendente": "={{ $('Webhook1').item.json.body.atendente }}",
+            "Id": "={{ $('Webhook1').item.json.body.lead_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Id",
+              "displayName": "Id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Nome",
+              "displayName": "Nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Telefone",
+              "displayName": "Telefone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Cidade",
+              "displayName": "Cidade",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Plano",
+              "displayName": "Plano",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Data",
+              "displayName": "Data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Pagina",
+              "displayName": "Pagina",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "atendente",
+              "displayName": "atendente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Id Vendedor",
+              "displayName": "Id Vendedor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status Venda",
+              "displayName": "Status Venda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Nº da proposta",
+              "displayName": "Nº da proposta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Responsável Financeiro",
+              "displayName": "Responsável Financeiro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Usuário/Titular",
+              "displayName": "Usuário/Titular",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tipo de plano",
+              "displayName": "Tipo de plano",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Data de retorno",
+              "displayName": "Data de retorno",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": " Vigência ",
+              "displayName": " Vigência ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Efetivação",
+              "displayName": "Efetivação",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ativação",
+              "displayName": "Ativação",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Data de pagamento",
+              "displayName": "Data de pagamento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Valor",
+              "displayName": "Valor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Observações",
+              "displayName": "Observações",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status Pós Venda",
+              "displayName": "Status Pós Venda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Data de Retrabalho",
+              "displayName": "Data de Retrabalho",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Consultor Retrabalho",
+              "displayName": "Consultor Retrabalho",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "7fbd495b-95e7-4189-b267-26c8766ef90a",
+      "name": "planilha DRV",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        352,
+        432
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "oe2W9C4EWZDMMJ8j",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "check-sheets-error-souza",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "222a08ac-4bda-484a-a79a-22c806b90db3",
+      "name": "Erro Sheets Souza?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        608,
+        432
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "sendTo": "netoppcem@gmail.com",
+        "subject": "=ERRO - Falha na planilha (Seu Souza) - Lead: {{ $('Webhook1').item.json.body.nome }}",
+        "message": "=Houve uma falha ao inserir dados na planilha (após 3 tentativas automáticas).\n\n{\n  \"number\": \"{{ $('Webhook1').item.json.body.vendedor_telefone }}\",\n  \"text\": \"*NOVO LEAD P3 - Data: {{ $('Webhook1').item.json.body.data }}*\\n\\n*Nome:* {{ $('Webhook1').item.json.body.name }}\\n*Telefone:* {{ $('Webhook1').item.json.body.telefone }}\\n*Cidade:* {{ $('Webhook1').item.json.body.cidade }}\\n*Plano:* {{ $('Webhook1').item.json.body.qual_plano }}\\n*Qtd Pessoas:* {{ $('Webhook1').item.json.body.qtd_pessoas }}\\n*Idades:* {{ $('Webhook1').item.json.body.idades }}\\n\\n*Id:* {{ $('Webhook1').item.json.body.lead_id }} \"\n}",
+        "options": {}
+      },
+      "id": "1a544bfa-ad74-4164-b701-ccf64a65f4cf",
+      "name": "Email Erro Sheets Souza",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        592,
+        64
+      ],
+      "webhookId": "18576ed2-9368-48a9-84b6-1faf72f6e572",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5jk75xu92g5FbQik",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Q-GEkj7DuACFVa-glS-5N8Lr2TYj1YW2v1cG4nmWJeI",
+          "mode": "list",
+          "cachedResultName": "Gestão de Leads - DRV",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q-GEkj7DuACFVa-glS-5N8Lr2TYj1YW2v1cG4nmWJeI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1918881680,
+          "mode": "list",
+          "cachedResultName": "Calculos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q-GEkj7DuACFVa-glS-5N8Lr2TYj1YW2v1cG4nmWJeI/edit#gid=1918881680"
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRange",
+              "firstDataRow": 3
+            }
+          },
+          "returnFirstMatch": false
+        }
+      },
+      "id": "9cb2f3e4-ae99-4b35-aba3-1ed3afde1ce9",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        864,
+        448
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "oe2W9C4EWZDMMJ8j",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0eb7ea27-6316-40ce-82a2-a9437e756474",
+              "name": "Valor total",
+              "value": "={{ $input.first().json[\"Valor total\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "82b242a7-b981-46ab-9879-c32c1ccab8ec",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1104,
+        448
+      ],
+      "id": "810f8654-3290-45aa-b156-e1140578f338",
+      "name": "Edit Fields",
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-evolution-api.32vkgz.easypanel.host/message/sendText/tabela_planos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "429683C4C977415CAAFCCE10F7D57E11"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"5583999471031\",\n  \"text\": \"*NOVO LEAD - TOTAL= {{ $('Webhook1').item.json.body.contagem_diaria }}*\\n\\n*Cidade:* {{ $('Webhook1').item.json.body.cidade }}\\n*Plano:* {{ $('Webhook1').item.json.body.tipo_de_plano }}\\n*Qtd Pessoas:* {{ $('Webhook1').item.json.body.quantidade_de_pessoas }}\\n*Idades:* {{ $('Webhook1').item.json.body.idades }}\\n\\n*Pagina:* {{ $('Webhook1').item.json.body.pagina_origem }}\\n\\n*Valor Total:* R$ {{ $json['Valor total'] }}\"\n}",
+        "options": {}
+      },
+      "id": "c4448368-81a9-4737-ba1a-87276bda2fdc",
+      "name": "enviar para mim",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1328,
+        448
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 30000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "check-error-enviar-mim",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Erro Enviar Mim?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        448
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "sendTo": "netoppcem@gmail.com",
+        "subject": "=ERRO - Falha no envio WhatsApp para Gestor (Seu Souza) - Lead: {{ $('Webhook1').item.json.body.nome }}",
+        "message": "=Houve uma falha no envio da mensagem WhatsApp para o gestor (após 5 tentativas automáticas).\n\nDados do lead:\n*Nome:* {{ $('Webhook1').item.json.body.name }}\n*Telefone:* {{ $('Webhook1').item.json.body.telefone }}\n*Cidade:* {{ $('Webhook1').item.json.body.cidade }}\n*Plano:* {{ $('Webhook1').item.json.body.qual_plano }}\n*Qtd Pessoas:* {{ $('Webhook1').item.json.body.qtd_pessoas }}\n*Idades:* {{ $('Webhook1').item.json.body.idades }}\n*Id:* {{ $('Webhook1').item.json.body.lead_id }}",
+        "options": {}
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Email Erro Enviar Mim",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1632,
+        80
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5jk75xu92g5FbQik",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://flowdrv.com.br/api/leadp3/salvar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer augnLRE2lWYtb6a1zU6IJ6iNyF6wcL95d2C1d3QKpm8AMUYe9EHVpX6j2jjODPtd"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"id_leadp3\": \"{{ $json.body.lead_id }}\",\n  \"nome\": \"{{ $json.body.name }}\",\n  \"vidas\": \"{{ $json.body.qtd_pessoas }}\",\n  \"telefone\": \"{{ $json.body.telefone }}\",\n  \"cidade\": \"{{ $json.body.cidade }}\",\n  \"operadora\": \"Hapvida\",\n  \"tipo\": \"{{ $json.body.qual_plano }}\",\n  \"id_corretor\": \"{{ $json.body.vendedor_id }}\",\n  \"nome_corretor\": \"{{ $json.body.vendedor_nome }}\",\n  \"aquisicao_lead\": \"{{ $json.body.data }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -176,
+        640
+      ],
+      "id": "38e19855-aabc-4a3d-83f5-61922139cd01",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "enviar para vendedor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "enviar para vendedor": {
+      "main": [
+        [
+          {
+            "node": "Erro Evolution Souza?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erro Evolution Souza?": {
+      "main": [
+        [
+          {
+            "node": "Email Erro Evolution Souza",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "planilha DRV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Erro Evolution Souza": {
+      "main": [
+        [
+          {
+            "node": "planilha DRV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "planilha DRV": {
+      "main": [
+        [
+          {
+            "node": "Erro Sheets Souza?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erro Sheets Souza?": {
+      "main": [
+        [
+          {
+            "node": "Email Erro Sheets Souza",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Erro Sheets Souza": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "enviar para mim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "enviar para mim": {
+      "main": [
+        [
+          {
+            "node": "Erro Enviar Mim?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erro Enviar Mim?": {
+      "main": [
+        [
+          {
+            "node": "Email Erro Enviar Mim",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "7db750fb-77d9-4e9c-aa1e-ed6ad7e5dc71",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "18d2c94e969273453e371205e5cb59886ef29ff6d8aaa05e7a96edae230ffd11"
+  },
+  "id": "3eDZLp1le134TsoX",
+  "tags": []
+}
