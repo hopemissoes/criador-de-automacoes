@@ -1,10 +1,9 @@
 // ============================================
-// CONFIGURAÇÃO
-const GEMINI_API_KEY = 'SUA_CHAVE_GEMINI_AQUI';
-const GEMINI_MODEL = 'gemini-3-pro-preview';
+// CONFIGURACAO
 const WP_USER = 'admin';
 const WP_APP_PASSWORD = 'SUA_APP_PASSWORD_AQUI';
 const WP_URL = 'https://salesesantos.adv.br';
+const ANO_ATUAL = '2026';
 // ============================================
 
 const items = $input.all();
@@ -19,75 +18,63 @@ for (const item of items) {
     continue;
   }
 
-  const tituloAtual = post.title?.rendered || '';
-  const descricaoAtual = post.excerpt?.rendered?.replace(/<[^>]*>/g, '').trim() || '';
-  const conteudo = post.content?.rendered?.replace(/<[^>]*>/g, '').substring(0, 500) || '';
   const prevData = $('Extrair Slug e Cidade').first().json;
   const cidade = prevData?.cidade || '';
-  const promocao = prevData?.promocao || '0';
+  const promocaoAtiva = (prevData?.promocao_ativa || '').toString().toLowerCase().trim();
+  const promocao = prevData?.promocao || '15';
+  const tituloOriginal = prevData?.titulo_original || '';
+  const descricaoOriginal = prevData?.descricao_original || '';
 
-  // ---- PASSO 1: Chamar Gemini ----
-  const promptSistema = 'Voce e um especialista em marketing juridico e SEO. Reformule titulos e meta descriptions de artigos de advocacia para incluir promocoes vigentes. Regras: 1) Titulo atrativo e profissional com a promocao. 2) Manter palavra-chave principal (area juridica + cidade). 3) Meta description entre 140-160 caracteres com call-to-action. 4) Tom profissional. 5) Promocao de forma elegante. Responda SEMPRE em JSON: {"novo_titulo": "...", "nova_descricao": "..."}';
+  // Gerar shortcode da cidade (ex: londrina_emp_ambulatorialtotal)
+  var cidadeSlug = cidade.toLowerCase();
+  cidadeSlug = cidadeSlug.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  cidadeSlug = cidadeSlug.replace(/\s+/g, '_');
+  var shortcode = '[' + cidadeSlug + '_emp_ambulatorialtotal]';
 
-  const promptUsuario = 'Reformule o titulo e descricao deste artigo do escritorio Sales e Santos Advogados. Titulo atual: ' + tituloAtual + '. Descricao atual: ' + descricaoAtual + '. Cidade: ' + cidade + '. Promocao: ' + promocao + '% de desconto. Contexto: ' + conteudo + '. Gere novo titulo e descricao em JSON.';
+  var novoTitulo = '';
+  var novaDescricao = '';
+  var acao = '';
 
-  const geminiBody = {
-    systemInstruction: {
-      parts: [{ text: promptSistema }]
-    },
-    contents: [{
-      role: 'user',
-      parts: [{ text: promptUsuario }]
-    }],
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 4096,
-      responseMimeType: 'application/json'
-    }
-  };
-
-  let novoTitulo = '';
-  let novaDescricao = '';
-  let debugGemini = '';
-
-  try {
-    const geminiResponse = await this.helpers.httpRequest({
-      method: 'POST',
-      url: 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + GEMINI_API_KEY,
-      body: geminiBody,
-      json: true,
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    debugGemini = JSON.stringify(geminiResponse);
-
-    const resposta = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    let parsed = null;
-    try {
-      parsed = JSON.parse(resposta);
-    } catch (_e) {
-      const jsonMatch = resposta.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0]);
-      }
-    }
-
-    if (parsed) {
-      novoTitulo = parsed.novo_titulo || parsed.title || parsed.titulo || '';
-      novaDescricao = parsed.nova_descricao || parsed.description || parsed.descricao || parsed.meta_description || '';
-    }
-  } catch (e) {
-    novoTitulo = 'ERRO GEMINI: ' + e.message;
-    debugGemini = e.message;
+  // ============================================
+  // FLUXO 1: PROMOCAO ATIVADA
+  // ============================================
+  if (promocaoAtiva === 'sim' || promocaoAtiva === 's' || promocaoAtiva === 'true' || promocaoAtiva === '1') {
+    acao = 'promocao_ativada';
+    novoTitulo = String.fromCodePoint(0x2705) + 'Plano Hapvida ' + cidade + ' ' + ANO_ATUAL + ': a partir de ' + shortcode;
+    novaDescricao = String.fromCodePoint(0x2705) + ' Plano Hapvida em ' + cidade + ' com ' + promocao + '% de desconto nas 3 primeiras parcelas. Faca uma cotacao em menos de 1 minuto.';
+  }
+  // ============================================
+  // FLUXO 2: PROMOCAO DESATIVADA
+  // ============================================
+  else {
+    acao = 'promocao_desativada';
+    novoTitulo = tituloOriginal;
+    novaDescricao = descricaoOriginal;
   }
 
-  // ---- PASSO 2: Atualizar WordPress ----
-  let wpStatus = 'erro';
+  // Verificar se o ano esta correto no titulo
+  if (novoTitulo && !novoTitulo.includes(ANO_ATUAL)) {
+    // Tentar substituir ano antigo (2020-2029)
+    var regexAno = /20[2][0-9]/g;
+    if (regexAno.test(novoTitulo)) {
+      novoTitulo = novoTitulo.replace(/20[2][0-9]/g, ANO_ATUAL);
+    } else {
+      // Se nao tinha ano, adicionar antes do ':'
+      var posicaoDoisPontos = novoTitulo.indexOf(':');
+      if (posicaoDoisPontos > -1) {
+        novoTitulo = novoTitulo.substring(0, posicaoDoisPontos) + ' ' + ANO_ATUAL + novoTitulo.substring(posicaoDoisPontos);
+      } else {
+        novoTitulo = novoTitulo + ' ' + ANO_ATUAL;
+      }
+    }
+  }
 
-  if (novoTitulo && !novoTitulo.startsWith('ERRO')) {
+  // Atualizar WordPress
+  var wpStatus = 'erro';
+
+  if (novoTitulo) {
     try {
-      const auth = Buffer.from(WP_USER + ':' + WP_APP_PASSWORD).toString('base64');
+      var auth = Buffer.from(WP_USER + ':' + WP_APP_PASSWORD).toString('base64');
       await this.helpers.httpRequest({
         method: 'POST',
         url: WP_URL + '/wp-json/wp/v2/posts/' + post.id,
@@ -116,11 +103,10 @@ for (const item of items) {
       post_id: post.id,
       novo_titulo: novoTitulo,
       nova_descricao: novaDescricao,
-      titulo_anterior: tituloAtual,
       url_original: prevData?.url_original || '',
       row_number: prevData?.row_number || 0,
       wp_status: wpStatus,
-      debug_gemini: debugGemini
+      acao: acao
     }
   });
 }
