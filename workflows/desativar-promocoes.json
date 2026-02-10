@@ -1,0 +1,207 @@
+{
+  "name": "Desativar Promocoes - WordPress",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-001",
+      "name": "Inicio Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0"
+        },
+        "options": {}
+      },
+      "id": "sheets-read-001",
+      "name": "Ler Planilha Google",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        240,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CONFIGURE_SEU_GOOGLE_CREDENTIAL_ID",
+          "name": "Google Sheets Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const url = item.json['URL'] || '';\n\n  // Pular linhas sem URL ou ja concluidas\n  const status = item.json['Status'] || item.json['STATUS'] || '';\n  if (!url || status === 'Concluido') continue;\n\n  var slug = url.replace(/\\/$/, '').split('/').pop();\n\n  // Extrair cidade: tentar da coluna Cidade, senao do slug\n  var cidade = item.json['Cidade'] || item.json['CIDADE'] || '';\n\n  if (!cidade) {\n    // Tentar extrair do slug (ex: plano-hapvida-londrina -> Londrina)\n    var partes = slug.split('-');\n    // Pegar a ultima parte como cidade (heuristica)\n    if (partes.length > 2) {\n      cidade = partes[partes.length - 1];\n      cidade = cidade.charAt(0).toUpperCase() + cidade.slice(1);\n    }\n  }\n\n  results.push({\n    json: {\n      ...item.json,\n      slug: slug,\n      cidade: cidade,\n      promocao: item.json['Promocao (%)'] || item.json['Promocao'] || item.json['PROMOCAO'] || item.json['PROMOCAO (%)'] || '15',\n      promocao_ativa: item.json['Promocao Ativa'] || item.json['PROMOCAO ATIVA'] || item.json['Promo Ativa'] || 'nao',\n      titulo_original: item.json['Titulo Original'] || item.json['TITULO ORIGINAL'] || '',\n      descricao_original: item.json['Descricao Original'] || item.json['DESCRICAO ORIGINAL'] || '',\n      url_original: url,\n      row_number: item.json['row_number'] || items.indexOf(item) + 2\n    }\n  });\n}\n\nreturn results;\n"
+      },
+      "id": "code-slug-001",
+      "name": "Extrair Slug e Cidade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://salesesantos.adv.br/wp-json/wp/v2/posts?slug={{ $json.slug }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {}
+      },
+      "id": "http-wp-get-001",
+      "name": "Buscar Post no WordPress",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "CONFIGURE_SEU_WP_CREDENTIAL_ID",
+          "name": "WordPress Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// WORKFLOW: DESATIVAR PROMOCOES\n// Restaura titulo e descricao originais da planilha\n// ============================================\nconst WP_USER = 'admin';\nconst WP_APP_PASSWORD = 'SUA_APP_PASSWORD_AQUI';\nconst WP_URL = 'https://salesesantos.adv.br';\nconst ANO_ATUAL = '2026';\n// ============================================\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const posts = item.json;\n  const post = Array.isArray(posts) ? posts[0] : posts;\n\n  if (!post || !post.id) {\n    results.push({ json: { erro: 'Post nao encontrado' } });\n    continue;\n  }\n\n  const prevData = $('Extrair Slug e Cidade').first().json;\n  const cidade = prevData?.cidade || '';\n  const tituloOriginal = prevData?.titulo_original || '';\n  const descricaoOriginal = prevData?.descricao_original || '';\n\n  var novoTitulo = tituloOriginal;\n  var novaDescricao = descricaoOriginal;\n\n  // Verificar se o ano esta correto no titulo\n  if (novoTitulo && !novoTitulo.includes(ANO_ATUAL)) {\n    var regexAno = /20[2][0-9]/g;\n    if (regexAno.test(novoTitulo)) {\n      novoTitulo = novoTitulo.replace(/20[2][0-9]/g, ANO_ATUAL);\n    } else {\n      var posicaoDoisPontos = novoTitulo.indexOf(':');\n      if (posicaoDoisPontos > -1) {\n        novoTitulo = novoTitulo.substring(0, posicaoDoisPontos) + ' ' + ANO_ATUAL + novoTitulo.substring(posicaoDoisPontos);\n      } else {\n        novoTitulo = novoTitulo + ' ' + ANO_ATUAL;\n      }\n    }\n  }\n\n  // Atualizar WordPress\n  var wpStatus = 'erro';\n\n  if (novoTitulo) {\n    try {\n      var auth = Buffer.from(WP_USER + ':' + WP_APP_PASSWORD).toString('base64');\n      await this.helpers.httpRequest({\n        method: 'POST',\n        url: WP_URL + '/wp-json/wp/v2/posts/' + post.id,\n        body: {\n          title: novoTitulo,\n          excerpt: novaDescricao,\n          meta: {\n            rank_math_description: novaDescricao,\n            rank_math_title: novoTitulo\n          }\n        },\n        json: true,\n        headers: {\n          'Content-Type': 'application/json',\n          'Authorization': 'Basic ' + auth\n        }\n      });\n      wpStatus = 'ok';\n    } catch (e) {\n      wpStatus = 'ERRO WP: ' + e.message;\n    }\n  } else {\n    wpStatus = 'ERRO: Titulo Original vazio na planilha';\n  }\n\n  results.push({\n    json: {\n      post_id: post.id,\n      novo_titulo: novoTitulo,\n      nova_descricao: novaDescricao,\n      cidade: cidade,\n      url_original: prevData?.url_original || '',\n      row_number: prevData?.row_number || 0,\n      wp_status: wpStatus\n    }\n  });\n}\n\nreturn results;\n"
+      },
+      "id": "code-main-001",
+      "name": "Desativar Promocao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Concluido",
+            "Novo Titulo": "={{ $json.novo_titulo }}",
+            "Nova Descricao": "={{ $json.nova_descricao }}"
+          },
+          "matchingColumns": [
+            "URL"
+          ]
+        },
+        "options": {}
+      },
+      "id": "sheets-update-001",
+      "name": "Atualizar Planilha",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1200,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CONFIGURE_SEU_GOOGLE_CREDENTIAL_ID",
+          "name": "Google Sheets Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Inicio Manual": {
+      "main": [
+        [
+          {
+            "node": "Ler Planilha Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Planilha Google": {
+      "main": [
+        [
+          {
+            "node": "Extrair Slug e Cidade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Slug e Cidade": {
+      "main": [
+        [
+          {
+            "node": "Buscar Post no WordPress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Post no WordPress": {
+      "main": [
+        [
+          {
+            "node": "Desativar Promocao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Desativar Promocao": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Planilha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "wordpress"
+    },
+    {
+      "name": "promocoes"
+    }
+  ]
+}
