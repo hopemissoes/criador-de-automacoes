@@ -31,7 +31,8 @@ for (const item of items) {
   var shortcode = '[' + cidadeSlug + '_emp_ambulatorialtotal]';
 
   // Titulo e descricao promocional
-  var novoTitulo = String.fromCodePoint(0x2705) + 'Plano Hapvida ' + cidade + ' ' + ANO_ATUAL + ': a partir de ' + shortcode;
+  var novoTitulo = 'Plano Hapvida ' + cidade + ' ' + ANO_ATUAL + ': a partir de ' + shortcode;
+  var rankMathTitulo = String.fromCodePoint(0x2705) + novoTitulo;
   var novaDescricao = String.fromCodePoint(0x2705) + ' Plano Hapvida em ' + cidade + ' com ' + promocao + '% de desconto nas 3 primeiras parcelas. Faca uma cotacao em menos de 1 minuto.';
 
   // Atualizar WordPress
@@ -47,7 +48,7 @@ for (const item of items) {
         excerpt: novaDescricao,
         meta: {
           rank_math_description: novaDescricao,
-          rank_math_title: novoTitulo
+          rank_math_title: rankMathTitulo
         }
       },
       json: true,
